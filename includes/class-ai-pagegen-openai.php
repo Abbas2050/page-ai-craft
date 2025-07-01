@@ -1,4 +1,3 @@
-
 <?php
 /**
  * OpenAI API communication for AI PageGen
@@ -47,15 +46,15 @@ class AI_PageGen_OpenAI {
      * @return array|false Generated content or false on failure
      */
     public function generate_content($prompt, $options = array()) {
-        if (empty($this->api_key)) {
-            AI_PageGen_Logger::error('OpenAI API key not configured');
-            throw new Exception(__('OpenAI API key is not configured. Please set it in plugin settings.', 'ai-pagegen'));
-        }
-        
         AI_PageGen_Logger::info('Starting content generation', array(
             'prompt_length' => strlen($prompt),
             'options' => $options
         ));
+        
+        if (empty($this->api_key)) {
+            AI_PageGen_Logger::error('OpenAI API key not configured');
+            throw new Exception(__('OpenAI API key is not configured. Please set it in plugin settings.', 'ai-pagegen'));
+        }
         
         // Build the system prompt based on options
         $system_prompt = $this->build_system_prompt($options);
@@ -79,19 +78,32 @@ class AI_PageGen_OpenAI {
         
         AI_PageGen_Logger::debug('OpenAI request prepared', array(
             'model' => $request_data['model'],
-            'system_prompt_length' => strlen($system_prompt)
+            'system_prompt_length' => strlen($system_prompt),
+            'user_prompt_length' => strlen($prompt)
         ));
         
         // Make the API request
-        $response = $this->make_api_request($request_data);
-        
-        if (!$response) {
-            AI_PageGen_Logger::error('OpenAI API request failed');
-            return false;
+        try {
+            $response = $this->make_api_request($request_data);
+            
+            if (!$response) {
+                AI_PageGen_Logger::error('OpenAI API request failed - no response');
+                throw new Exception(__('Failed to get response from OpenAI API', 'ai-pagegen'));
+            }
+            
+            // Process the response
+            $result = $this->process_response($response, $options);
+            
+            AI_PageGen_Logger::info('Content generation completed successfully');
+            return $result;
+            
+        } catch (Exception $e) {
+            AI_PageGen_Logger::error('Content generation failed', array(
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ));
+            throw $e;
         }
-        
-        // Process the response
-        return $this->process_response($response, $options);
     }
     
     /**
@@ -140,6 +152,8 @@ class AI_PageGen_OpenAI {
         
         $prompt .= '. Ensure all HTML is valid and properly formatted for WordPress.';
         
+        AI_PageGen_Logger::debug('System prompt built', array('prompt_length' => strlen($prompt)));
+        
         return $prompt;
     }
     
@@ -162,15 +176,19 @@ class AI_PageGen_OpenAI {
             'timeout' => 60,
         );
         
-        AI_PageGen_Logger::debug('Making OpenAI API request');
+        AI_PageGen_Logger::debug('Making OpenAI API request', array(
+            'url' => $this->api_url,
+            'timeout' => $args['timeout']
+        ));
         
         $response = wp_remote_request($this->api_url, $args);
         
         if (is_wp_error($response)) {
-            AI_PageGen_Logger::error('OpenAI API request error', array(
-                'error' => $response->get_error_message()
+            AI_PageGen_Logger::error('OpenAI API request error (WP_Error)', array(
+                'error_code' => $response->get_error_code(),
+                'error_message' => $response->get_error_message()
             ));
-            throw new Exception($response->get_error_message());
+            throw new Exception('API Request Error: ' . $response->get_error_message());
         }
         
         $response_code = wp_remote_retrieve_response_code($response);
@@ -191,7 +209,8 @@ class AI_PageGen_OpenAI {
             
             AI_PageGen_Logger::error('OpenAI API error response', array(
                 'status_code' => $response_code,
-                'error_data' => $error_data
+                'error_data' => $error_data,
+                'response_body' => $response_body
             ));
             
             throw new Exception($error_message);
@@ -200,7 +219,9 @@ class AI_PageGen_OpenAI {
         $decoded_response = json_decode($response_body, true);
         
         if (!$decoded_response) {
-            AI_PageGen_Logger::error('Failed to decode OpenAI response');
+            AI_PageGen_Logger::error('Failed to decode OpenAI response', array(
+                'response_body' => $response_body
+            ));
             throw new Exception(__('Failed to decode API response', 'ai-pagegen'));
         }
         
@@ -215,6 +236,10 @@ class AI_PageGen_OpenAI {
      * @return array Processed content
      */
     private function process_response($response, $options) {
+        AI_PageGen_Logger::debug('Processing OpenAI response', array(
+            'response_structure' => array_keys($response)
+        ));
+        
         if (!isset($response['choices'][0]['message']['content'])) {
             AI_PageGen_Logger::error('Invalid OpenAI response structure', array(
                 'response' => $response
@@ -224,15 +249,20 @@ class AI_PageGen_OpenAI {
         
         $content = $response['choices'][0]['message']['content'];
         
-        AI_PageGen_Logger::debug('Processing OpenAI response', array(
-            'content_length' => strlen($content)
+        AI_PageGen_Logger::debug('Raw content received', array(
+            'content_length' => strlen($content),
+            'content_preview' => substr($content, 0, 100) . '...'
         ));
         
         // Try to decode as JSON first
         $decoded_content = json_decode($content, true);
         
         if ($decoded_content) {
-            AI_PageGen_Logger::info('Content generated successfully as JSON');
+            AI_PageGen_Logger::info('Content generated successfully as JSON', array(
+                'has_title' => isset($decoded_content['title']),
+                'has_content' => isset($decoded_content['content']),
+                'has_excerpt' => isset($decoded_content['excerpt'])
+            ));
             return $decoded_content;
         }
         
@@ -256,6 +286,11 @@ class AI_PageGen_OpenAI {
             $result['seo_title'] = $title;
             $result['meta_description'] = $this->generate_meta_description($formatted_content);
         }
+        
+        AI_PageGen_Logger::info('Fallback content structure created', array(
+            'title' => $title,
+            'content_length' => strlen($formatted_content)
+        ));
         
         return $result;
     }
@@ -339,6 +374,7 @@ class AI_PageGen_OpenAI {
      */
     public function test_connection() {
         if (empty($this->api_key)) {
+            AI_PageGen_Logger::error('API test failed - no API key');
             return false;
         }
         
@@ -348,14 +384,23 @@ class AI_PageGen_OpenAI {
                 'messages' => array(
                     array(
                         'role' => 'user',
-                        'content' => 'Hello, this is a test.'
+                        'content' => 'Hello, this is a test. Please respond with "Test successful".'
                     )
                 ),
                 'max_tokens' => 10
             );
             
+            AI_PageGen_Logger::info('Testing API connection');
+            
             $response = $this->make_api_request($test_data);
-            return !empty($response);
+            
+            if ($response && isset($response['choices'][0]['message']['content'])) {
+                AI_PageGen_Logger::info('API connection test successful');
+                return true;
+            } else {
+                AI_PageGen_Logger::error('API connection test failed - invalid response');
+                return false;
+            }
             
         } catch (Exception $e) {
             AI_PageGen_Logger::error('API connection test failed', array(

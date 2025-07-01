@@ -12,6 +12,29 @@
             this.bindEvents();
             this.initializeUI();
             this.setupAnimations();
+            this.setupDebugging();
+        },
+        
+        setupDebugging: function() {
+            // Enhanced debugging and error tracking
+            window.onerror = function(msg, url, lineNo, columnNo, error) {
+                console.error('[AI PageGen] JavaScript Error:', {
+                    message: msg,
+                    source: url,
+                    line: lineNo,
+                    column: columnNo,
+                    error: error
+                });
+                return false;
+            };
+            
+            // Log initialization
+            console.log('[AI PageGen] Admin script initialized', {
+                version: '1.0.0',
+                settings: aiPageGen.settings,
+                is_pro: aiPageGen.is_pro,
+                ajax_url: aiPageGen.ajax_url
+            });
         },
         
         bindEvents: function() {
@@ -28,6 +51,32 @@
             this.setupTooltips();
             this.initializeProgressBars();
             this.setupKeyboardShortcuts();
+            this.validateInitialState();
+        },
+        
+        validateInitialState: function() {
+            // Check if aiPageGen object is properly loaded
+            if (typeof aiPageGen === 'undefined') {
+                console.error('[AI PageGen] aiPageGen object not found - script may not be properly enqueued');
+                this.showMessage('Plugin script not properly loaded. Please refresh the page.', 'error');
+                return;
+            }
+            
+            // Check if AJAX URL is available
+            if (!aiPageGen.ajax_url) {
+                console.error('[AI PageGen] AJAX URL not available');
+                this.showMessage('AJAX URL not configured. Please check plugin settings.', 'error');
+                return;
+            }
+            
+            // Check if nonce is available
+            if (!aiPageGen.nonce) {
+                console.error('[AI PageGen] Security nonce not available');
+                this.showMessage('Security nonce not configured. Please refresh the page.', 'error');
+                return;
+            }
+            
+            console.log('[AI PageGen] Initial state validation passed');
         },
         
         setupAnimations: function() {
@@ -65,6 +114,7 @@
             // Check if API key is configured
             const settings = aiPageGen.settings || {};
             if (!settings.openai_api_key) {
+                console.error('[AI PageGen] No API key configured');
                 AIPageGen.showMessage('Please configure your OpenAI API key in settings first.', 'error');
                 return;
             }
@@ -74,7 +124,14 @@
             formData.append('action', 'ai_pagegen_generate');
             formData.append('nonce', aiPageGen.nonce);
             
-            console.log('[AI PageGen] Form data prepared:', Object.fromEntries(formData));
+            // Log form data for debugging
+            const formDataObj = {};
+            for (let [key, value] of formData.entries()) {
+                if (key !== 'openai_api_key') { // Don't log API keys
+                    formDataObj[key] = value;
+                }
+            }
+            console.log('[AI PageGen] Form data prepared:', formDataObj);
             
             // Track analytics
             AIPageGen.trackEvent('content_generation_started');
@@ -90,7 +147,10 @@
         $(document).on('click', '#create-page-btn', function(e) {
             e.preventDefault();
             
+            console.log('[AI PageGen] Page creation button clicked');
+            
             if (!AIPageGen.currentGeneratedContent) {
+                console.error('[AI PageGen] No content available for page creation');
                 AIPageGen.showMessage('No content available to create page.', 'error');
                 return;
             }
@@ -111,7 +171,11 @@
                 elementor_compatible: elementorCompatible
             };
             
-            console.log('[AI PageGen] Creating page with data:', requestData);
+            console.log('[AI PageGen] Creating page with data:', {
+                action: requestData.action,
+                elementor_compatible: elementorCompatible,
+                content_title: AIPageGen.currentGeneratedContent.title
+            });
             
             $.ajax({
                 url: aiPageGen.ajax_url,
@@ -144,13 +208,29 @@
                             post_id: response.data.post_id
                         });
                     } else {
-                        AIPageGen.showMessage(response.data || 'Failed to create page', 'error');
                         console.error('[AI PageGen] Page creation failed:', response.data);
+                        AIPageGen.showMessage(response.data || 'Failed to create page', 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('[AI PageGen] Page creation AJAX error:', {xhr, status, error});
-                    AIPageGen.showMessage('Failed to create page. Please check the logs.', 'error');
+                    console.error('[AI PageGen] Page creation AJAX error:', {
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText,
+                        statusCode: xhr.status
+                    });
+                    
+                    let errorMessage = 'Failed to create page. Please check the logs.';
+                    
+                    if (xhr.status === 403) {
+                        errorMessage = 'Permission denied. You may not have sufficient privileges to create pages.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'Server error occurred. Please check the error logs and try again.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.data) {
+                        errorMessage = xhr.responseJSON.data;
+                    }
+                    
+                    AIPageGen.showMessage(errorMessage, 'error');
                 },
                 complete: function() {
                     // Reset button state
@@ -168,23 +248,26 @@
             const $seoFields = $('#seo_fields');
             const isChecked = this.checked;
             
+            console.log('[AI PageGen] SEO toggle changed:', isChecked);
+            
             if (isChecked && aiPageGen.is_pro) {
                 $seoFields.slideDown({
                     duration: 400,
-                    easing: 'easeOutCubic',
+                    easing: 'swing',
                     complete: function() {
                         $(this).find('input, textarea').first().focus();
                     }
                 });
                 AIPageGen.trackEvent('seo_optimization_enabled');
             } else if (isChecked && !aiPageGen.is_pro) {
+                console.log('[AI PageGen] SEO feature requires Pro version');
                 // Show pro upgrade message with animation
                 AIPageGen.showProUpgradeModal();
                 this.checked = false;
             } else {
                 $seoFields.slideUp({
                     duration: 300,
-                    easing: 'easeInCubic'
+                    easing: 'swing'
                 });
             }
         });
@@ -196,6 +279,8 @@
     AIPageGen.bindProFeatures = function() {
         $('.pro-disabled input, .pro-disabled select, .pro-disabled textarea').on('click focus', function(e) {
             if (!aiPageGen.is_pro) {
+                console.log('[AI PageGen] Pro feature attempted:', $(this).attr('name') || $(this).attr('id'));
+                
                 e.preventDefault();
                 e.stopPropagation();
                 
@@ -339,7 +424,13 @@
             },
             error: function(xhr, status, error) {
                 const duration = Date.now() - startTime;
-                console.error('[AI PageGen] AJAX Error:', {xhr, status, error, duration});
+                console.error('[AI PageGen] AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status,
+                    duration: duration
+                });
                 
                 let errorMessage = aiPageGen.strings.error;
                 
@@ -349,6 +440,10 @@
                     errorMessage = 'API rate limit exceeded. Please wait a moment and try again.';
                 } else if (xhr.status === 401) {
                     errorMessage = 'Invalid API key. Please check your OpenAI API key in settings.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'Permission denied. Please check your user permissions.';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Server error occurred. Please check the error logs and try again.';
                 } else if (xhr.responseJSON && xhr.responseJSON.data) {
                     errorMessage = xhr.responseJSON.data;
                 } else if (xhr.responseText) {
@@ -356,7 +451,7 @@
                         const errorData = JSON.parse(xhr.responseText);
                         errorMessage = errorData.data || errorMessage;
                     } catch(e) {
-                        console.log('[AI PageGen] Could not parse error response');
+                        console.log('[AI PageGen] Could not parse error response:', xhr.responseText);
                     }
                 }
                 
@@ -520,6 +615,8 @@
     AIPageGen.handleGenerationError = function(errorMessage) {
         const $preview = $('#content-preview');
         
+        console.error('[AI PageGen] Handling generation error:', errorMessage);
+        
         const errorHtml = `
             <div class="error-state" style="text-align: center; padding: 40px; color: #721c24;">
                 <div class="error-icon" style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
@@ -621,6 +718,8 @@
     AIPageGen.showMessage = function(message, type, autoDismiss = true) {
         const $container = $('.ai-pagegen-wrap');
         const $existingMessage = $container.find('.ai-pagegen-message');
+        
+        console.log('[AI PageGen] Showing message:', type, message);
         
         // Remove existing messages with animation
         $existingMessage.fadeOut(200, function() {
@@ -897,10 +996,12 @@
     
     AIPageGen.updatePreviewPrompt = function(prompt) {
         // Placeholder for preview updates
+        console.log('[AI PageGen] Preview prompt updated:', prompt.substring(0, 50) + '...');
     };
     
     AIPageGen.updatePreviewType = function(type) {
         // Placeholder for preview updates
+        console.log('[AI PageGen] Preview type updated:', type);
     };
     
 })(jQuery);
