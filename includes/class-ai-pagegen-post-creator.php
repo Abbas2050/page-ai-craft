@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Post/Page creator for AI PageGen
@@ -25,10 +24,18 @@ class AI_PageGen_Post_Creator {
      * @return int|false Post ID on success, false on failure
      */
     public function create_post($content, $options = array()) {
+        AI_PageGen_Logger::info('Starting post creation', array(
+            'title' => $content['title'],
+            'post_type' => isset($options['post_type']) ? $options['post_type'] : 'post'
+        ));
+        
+        // Process content for Gutenberg or Elementor
+        $processed_content = $this->process_content_for_editor($content['content'], $options);
+        
         // Prepare post data
         $post_data = array(
             'post_title' => $content['title'],
-            'post_content' => $content['content'],
+            'post_content' => $processed_content,
             'post_status' => 'draft', // Create as draft for review
             'post_type' => isset($options['post_type']) ? $options['post_type'] : 'post',
             'post_author' => get_current_user_id(),
@@ -48,7 +55,15 @@ class AI_PageGen_Post_Creator {
         $post_id = wp_insert_post($post_data);
         
         if (is_wp_error($post_id)) {
+            AI_PageGen_Logger::error('Post creation failed', array(
+                'error' => $post_id->get_error_message()
+            ));
             return false;
+        }
+        
+        // Add Elementor compatibility if requested
+        if (isset($options['elementor_compatible']) && $options['elementor_compatible']) {
+            $this->make_elementor_compatible($post_id, $content);
         }
         
         // Add SEO meta data if available
@@ -61,7 +76,146 @@ class AI_PageGen_Post_Creator {
             $this->add_custom_styling($post_id, $options['color_scheme']);
         }
         
+        AI_PageGen_Logger::info('Post created successfully', array('post_id' => $post_id));
+        
         return $post_id;
+    }
+    
+    /**
+     * Process content for specific editors (Gutenberg/Elementor)
+     *
+     * @param string $content Raw HTML content
+     * @param array $options Creation options
+     * @return string Processed content
+     */
+    private function process_content_for_editor($content, $options) {
+        if (isset($options['elementor_compatible']) && $options['elementor_compatible']) {
+            // For Elementor, we'll store the content as raw HTML
+            // Elementor will handle the conversion when the page is edited
+            return $content;
+        }
+        
+        // Convert HTML to Gutenberg blocks
+        return $this->convert_html_to_gutenberg_blocks($content);
+    }
+    
+    /**
+     * Convert HTML content to Gutenberg blocks
+     *
+     * @param string $html HTML content
+     * @return string Gutenberg blocks
+     */
+    private function convert_html_to_gutenberg_blocks($html) {
+        // Simple HTML to Gutenberg block conversion
+        $blocks = '';
+        
+        // Split content by common HTML tags and convert to blocks
+        $dom = new DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        
+        $xpath = new DOMXPath($dom);
+        
+        // Convert headings
+        foreach ($xpath->query('//h1 | //h2 | //h3 | //h4 | //h5 | //h6') as $heading) {
+            $level = substr($heading->tagName, 1);
+            $text = $heading->textContent;
+            $blocks .= "<!-- wp:heading {\"level\":{$level}} -->\n";
+            $blocks .= "<h{$level}>{$text}</h{$level}>\n";
+            $blocks .= "<!-- /wp:heading -->\n\n";
+        }
+        
+        // Convert paragraphs
+        foreach ($xpath->query('//p') as $paragraph) {
+            $text = $paragraph->textContent;
+            if (trim($text)) {
+                $blocks .= "<!-- wp:paragraph -->\n";
+                $blocks .= "<p>{$text}</p>\n";
+                $blocks .= "<!-- /wp:paragraph -->\n\n";
+            }
+        }
+        
+        // Convert lists
+        foreach ($xpath->query('//ul') as $list) {
+            $blocks .= "<!-- wp:list -->\n";
+            $blocks .= $dom->saveHTML($list) . "\n";
+            $blocks .= "<!-- /wp:list -->\n\n";
+        }
+        
+        foreach ($xpath->query('//ol') as $list) {
+            $blocks .= "<!-- wp:list {\"ordered\":true} -->\n";
+            $blocks .= $dom->saveHTML($list) . "\n";
+            $blocks .= "<!-- /wp:list -->\n\n";
+        }
+        
+        // If no specific blocks were created, wrap in a single HTML block
+        if (empty(trim($blocks))) {
+            $blocks = "<!-- wp:html -->\n";
+            $blocks .= $html . "\n";
+            $blocks .= "<!-- /wp:html -->\n";
+        }
+        
+        return $blocks;
+    }
+    
+    /**
+     * Make post compatible with Elementor
+     *
+     * @param int $post_id Post ID
+     * @param array $content Content data
+     */
+    private function make_elementor_compatible($post_id, $content) {
+        AI_PageGen_Logger::info('Making post Elementor compatible', array('post_id' => $post_id));
+        
+        // Enable Elementor for this post
+        update_post_meta($post_id, '_elementor_edit_mode', 'builder');
+        update_post_meta($post_id, '_elementor_template_type', 'wp-post');
+        update_post_meta($post_id, '_elementor_version', '3.0.0');
+        
+        // Create basic Elementor structure
+        $elementor_data = $this->create_elementor_structure($content);
+        update_post_meta($post_id, '_elementor_data', $elementor_data);
+        
+        // Set page template to Elementor Canvas (if available)
+        if (get_post_type($post_id) === 'page') {
+            update_post_meta($post_id, '_wp_page_template', 'elementor_canvas');
+        }
+    }
+    
+    /**
+     * Create basic Elementor structure from content
+     *
+     * @param array $content Content data
+     * @return string JSON encoded Elementor data
+     */
+    private function create_elementor_structure($content) {
+        $elementor_data = array(
+            array(
+                'id' => wp_generate_uuid4(),
+                'elType' => 'section',
+                'elements' => array(
+                    array(
+                        'id' => wp_generate_uuid4(),
+                        'elType' => 'column',
+                        'elements' => array(
+                            array(
+                                'id' => wp_generate_uuid4(),
+                                'elType' => 'widget',
+                                'widgetType' => 'text-editor',
+                                'settings' => array(
+                                    'editor' => $content['content']
+                                )
+                            )
+                        ),
+                        'settings' => array(
+                            '_column_size' => 100
+                        )
+                    )
+                ),
+                'settings' => array()
+            )
+        );
+        
+        return json_encode($elementor_data);
     }
     
     /**

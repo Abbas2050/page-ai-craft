@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Admin interface for AI PageGen plugin
@@ -40,6 +39,8 @@ class AI_PageGen_Admin {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('wp_ajax_ai_pagegen_generate', array($this, 'handle_ajax_generate'));
+        add_action('wp_ajax_ai_pagegen_create_page', array($this, 'handle_ajax_create_page'));
+        add_action('wp_ajax_ai_pagegen_clear_logs', array($this, 'handle_clear_logs'));
     }
     
     /**
@@ -72,6 +73,15 @@ class AI_PageGen_Admin {
             'manage_ai_pagegen',
             'ai-pagegen-settings',
             array($this, 'settings_page')
+        );
+        
+        add_submenu_page(
+            'ai-pagegen',
+            __('Logs', 'ai-pagegen'),
+            __('Logs', 'ai-pagegen'),
+            'manage_ai_pagegen',
+            'ai-pagegen-logs',
+            array($this, 'logs_page')
         );
     }
     
@@ -171,7 +181,9 @@ class AI_PageGen_Admin {
             'strings' => array(
                 'generating' => __('Generating content...', 'ai-pagegen'),
                 'error' => __('An error occurred. Please try again.', 'ai-pagegen'),
-                'pro_required' => __('This feature is available in Pro version only.', 'ai-pagegen')
+                'pro_required' => __('This feature is available in Pro version only.', 'ai-pagegen'),
+                'page_created' => __('Page created successfully!', 'ai-pagegen'),
+                'creating_page' => __('Creating page...', 'ai-pagegen')
             )
         ));
     }
@@ -255,6 +267,18 @@ class AI_PageGen_Admin {
                             <?php endif; ?>
                         </div>
                         
+                        <!-- Elementor Compatibility (Pro Only) -->
+                        <div class="form-group<?php echo !$is_pro ? ' pro-disabled' : ''; ?>">
+                            <label>
+                                <input type="checkbox" id="elementor_compatible" name="elementor_compatible" <?php echo !$is_pro ? 'disabled' : ''; ?>>
+                                <?php _e('Make Elementor Compatible', 'ai-pagegen'); ?>
+                                <?php if (!$is_pro) : ?>
+                                    <span class="pro-tooltip" data-tooltip="<?php _e('Available in Pro version', 'ai-pagegen'); ?>">🔒</span>
+                                <?php endif; ?>
+                            </label>
+                            <p class="description"><?php _e('Generate content compatible with Elementor page builder (Pro feature)', 'ai-pagegen'); ?></p>
+                        </div>
+                        
                         <div class="form-actions">
                             <button type="submit" class="button button-primary button-large" id="generate-btn">
                                 <span class="dashicons dashicons-robot"></span>
@@ -268,6 +292,12 @@ class AI_PageGen_Admin {
                     <h3><?php _e('Generated Content Preview', 'ai-pagegen'); ?></h3>
                     <div id="content-preview">
                         <p class="placeholder"><?php _e('Generated content will appear here...', 'ai-pagegen'); ?></p>
+                    </div>
+                    <div id="page-actions" style="display: none; margin-top: 20px;">
+                        <button type="button" class="button button-primary" id="create-page-btn">
+                            <span class="dashicons dashicons-plus-alt"></span>
+                            <?php _e('Create WordPress Page', 'ai-pagegen'); ?>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -291,6 +321,60 @@ class AI_PageGen_Admin {
                 ?>
             </form>
         </div>
+        <?php
+    }
+    
+    /**
+     * Logs page
+     */
+    public function logs_page() {
+        $logs = AI_PageGen_Logger::get_recent_logs(200);
+        $log_size = AI_PageGen_Logger::get_log_size();
+        ?>
+        <div class="wrap">
+            <h1><?php _e('AI PageGen Logs', 'ai-pagegen'); ?></h1>
+            
+            <div class="log-header" style="margin-bottom: 20px;">
+                <p><?php printf(__('Log file size: %s bytes', 'ai-pagegen'), number_format($log_size)); ?></p>
+                <button type="button" class="button button-secondary" id="clear-logs-btn">
+                    <?php _e('Clear Logs', 'ai-pagegen'); ?>
+                </button>
+                <button type="button" class="button" onclick="location.reload();">
+                    <?php _e('Refresh', 'ai-pagegen'); ?>
+                </button>
+            </div>
+            
+            <div class="log-container" style="background: #f1f1f1; padding: 15px; border: 1px solid #ccc; max-height: 500px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                <?php if (empty($logs)) : ?>
+                    <p><?php _e('No logs available.', 'ai-pagegen'); ?></p>
+                <?php else : ?>
+                    <?php foreach ($logs as $log) : ?>
+                        <div style="margin-bottom: 5px; <?php echo strpos($log, '[ERROR]') !== false ? 'color: red;' : (strpos($log, '[WARNING]') !== false ? 'color: orange;' : ''); ?>">
+                            <?php echo esc_html($log); ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            $('#clear-logs-btn').on('click', function() {
+                if (confirm('<?php _e('Are you sure you want to clear all logs?', 'ai-pagegen'); ?>')) {
+                    $.post(ajaxurl, {
+                        action: 'ai_pagegen_clear_logs',
+                        nonce: '<?php echo wp_create_nonce('ai_pagegen_clear_logs'); ?>'
+                    }, function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('<?php _e('Failed to clear logs.', 'ai-pagegen'); ?>');
+                        }
+                    });
+                }
+            });
+        });
+        </script>
         <?php
     }
     
@@ -331,14 +415,24 @@ class AI_PageGen_Admin {
      * Handle AJAX content generation
      */
     public function handle_ajax_generate() {
+        // Log the start of generation
+        AI_PageGen_Logger::info('Content generation started', array(
+            'user_id' => get_current_user_id(),
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        ));
+        
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'], 'ai_pagegen_nonce')) {
-            wp_die(__('Security check failed', 'ai-pagegen'));
+            AI_PageGen_Logger::error('Nonce verification failed');
+            wp_send_json_error(__('Security check failed', 'ai-pagegen'));
+            return;
         }
         
         // Check user capabilities
         if (!current_user_can('manage_ai_pagegen')) {
-            wp_die(__('You do not have permission to perform this action', 'ai-pagegen'));
+            AI_PageGen_Logger::error('User permission denied', array('user_id' => get_current_user_id()));
+            wp_send_json_error(__('You do not have permission to perform this action', 'ai-pagegen'));
+            return;
         }
         
         $prompt = sanitize_textarea_field($_POST['ai_prompt']);
@@ -348,10 +442,19 @@ class AI_PageGen_Admin {
         $seo_keywords = sanitize_text_field($_POST['seo_keywords']);
         $color_scheme = sanitize_text_field($_POST['color_scheme']);
         $page_sections = sanitize_text_field($_POST['page_sections']);
+        $elementor_compatible = isset($_POST['elementor_compatible']) ? true : false;
+        
+        AI_PageGen_Logger::info('Generation parameters', array(
+            'prompt' => substr($prompt, 0, 100) . '...',
+            'post_type' => $post_type,
+            'seo_optimization' => $seo_optimization,
+            'elementor_compatible' => $elementor_compatible
+        ));
         
         // Check if pro features are being used
         $is_pro = AI_PageGen_Licensing::is_pro_user();
-        if (!$is_pro && ($post_type !== 'post' || $header_footer !== 'theme' || $seo_optimization || !empty($color_scheme) || !empty($page_sections))) {
+        if (!$is_pro && ($post_type !== 'post' || $header_footer !== 'theme' || $seo_optimization || !empty($color_scheme) || !empty($page_sections) || $elementor_compatible)) {
+            AI_PageGen_Logger::warning('Pro features attempted by free user');
             wp_send_json_error(__('Pro features require upgrading to Pro version', 'ai-pagegen'));
             return;
         }
@@ -365,31 +468,111 @@ class AI_PageGen_Admin {
                 'seo_optimization' => $seo_optimization,
                 'seo_keywords' => $seo_keywords,
                 'color_scheme' => $color_scheme,
-                'page_sections' => $page_sections
+                'page_sections' => $page_sections,
+                'elementor_compatible' => $elementor_compatible
             ));
             
             if ($content) {
-                // Create the post/page
-                $post_creator = new AI_PageGen_Post_Creator();
-                $post_id = $post_creator->create_post($content, array(
-                    'post_type' => $post_type,
-                    'seo_keywords' => $seo_keywords
+                AI_PageGen_Logger::info('Content generated successfully', array(
+                    'content_length' => strlen($content['content'])
                 ));
                 
-                if ($post_id) {
-                    wp_send_json_success(array(
-                        'content' => $content['content'],
-                        'post_id' => $post_id,
-                        'edit_link' => get_edit_post_link($post_id)
-                    ));
-                } else {
-                    wp_send_json_error(__('Failed to create post/page', 'ai-pagegen'));
-                }
+                wp_send_json_success(array(
+                    'content' => $content['content'],
+                    'title' => $content['title'],
+                    'seo_data' => isset($content['seo_data']) ? $content['seo_data'] : null,
+                    'full_content' => $content
+                ));
             } else {
+                AI_PageGen_Logger::error('Content generation failed - empty response');
                 wp_send_json_error(__('Failed to generate content', 'ai-pagegen'));
             }
         } catch (Exception $e) {
+            AI_PageGen_Logger::error('Content generation exception', array(
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ));
             wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle AJAX page creation
+     */
+    public function handle_ajax_create_page() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'ai_pagegen_nonce')) {
+            AI_PageGen_Logger::error('Page creation - Nonce verification failed');
+            wp_send_json_error(__('Security check failed', 'ai-pagegen'));
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_pages')) {
+            AI_PageGen_Logger::error('Page creation - User permission denied');
+            wp_send_json_error(__('You do not have permission to create pages', 'ai-pagegen'));
+            return;
+        }
+        
+        $content_data = json_decode(stripslashes($_POST['content_data']), true);
+        $elementor_compatible = isset($_POST['elementor_compatible']) ? true : false;
+        
+        if (!$content_data) {
+            AI_PageGen_Logger::error('Page creation - Invalid content data');
+            wp_send_json_error(__('Invalid content data', 'ai-pagegen'));
+            return;
+        }
+        
+        try {
+            // Create the post/page
+            $post_creator = new AI_PageGen_Post_Creator();
+            $post_id = $post_creator->create_post($content_data, array(
+                'post_type' => 'page',
+                'elementor_compatible' => $elementor_compatible
+            ));
+            
+            if ($post_id) {
+                AI_PageGen_Logger::info('Page created successfully', array(
+                    'post_id' => $post_id,
+                    'title' => $content_data['title']
+                ));
+                
+                wp_send_json_success(array(
+                    'post_id' => $post_id,
+                    'edit_link' => get_edit_post_link($post_id),
+                    'view_link' => get_permalink($post_id),
+                    'message' => __('Page created successfully!', 'ai-pagegen')
+                ));
+            } else {
+                AI_PageGen_Logger::error('Page creation failed');
+                wp_send_json_error(__('Failed to create page', 'ai-pagegen'));
+            }
+        } catch (Exception $e) {
+            AI_PageGen_Logger::error('Page creation exception', array(
+                'error' => $e->getMessage()
+            ));
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle clear logs AJAX
+     */
+    public function handle_clear_logs() {
+        if (!wp_verify_nonce($_POST['nonce'], 'ai_pagegen_clear_logs')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        if (!current_user_can('manage_ai_pagegen')) {
+            wp_send_json_error('Permission denied');
+            return;
+        }
+        
+        if (AI_PageGen_Logger::clear_logs()) {
+            wp_send_json_success('Logs cleared successfully');
+        } else {
+            wp_send_json_error('Failed to clear logs');
         }
     }
 }

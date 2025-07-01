@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Plugin Name: AI PageGen - WordPress Content Generator
@@ -97,6 +96,7 @@ final class AI_PageGen_Plugin {
     private function load_dependencies() {
         // Check if files exist before including
         $required_files = array(
+            'includes/class-ai-pagegen-logger.php',
             'includes/class-ai-pagegen-admin.php',
             'includes/class-ai-pagegen-openai.php',
             'includes/class-ai-pagegen-post-creator.php',
@@ -107,6 +107,9 @@ final class AI_PageGen_Plugin {
             $file_path = AI_PAGEGEN_PLUGIN_DIR . $file;
             if (file_exists($file_path)) {
                 require_once $file_path;
+            } else {
+                // Log missing file error
+                error_log("AI PageGen: Required file missing - {$file}");
             }
         }
     }
@@ -130,6 +133,10 @@ final class AI_PageGen_Plugin {
      * @since 1.0.0
      */
     public function init() {
+        // Initialize logger
+        AI_PageGen_Logger::init();
+        AI_PageGen_Logger::info('AI PageGen plugin initialized');
+        
         // Initialize admin interface if in admin
         if (is_admin()) {
             AI_PageGen_Admin::get_instance();

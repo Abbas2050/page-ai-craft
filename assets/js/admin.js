@@ -1,12 +1,13 @@
-
 /**
- * AI PageGen Admin JavaScript - Enhanced with Animations & UX
+ * AI PageGen Admin JavaScript - Enhanced with Logging & Page Creation
  */
 (function($) {
     'use strict';
     
     // Configuration object
     const AIPageGen = {
+        currentGeneratedContent: null,
+        
         init: function() {
             this.bindEvents();
             this.initializeUI();
@@ -20,6 +21,7 @@
             this.bindFormValidation();
             this.bindSettingsValidation();
             this.bindPreviewUpdates();
+            this.bindPageCreation();
         },
         
         initializeUI: function() {
@@ -45,15 +47,25 @@
     });
     
     /**
-     * Enhanced form submission with better UX
+     * Enhanced form submission with better UX and logging
      */
     AIPageGen.bindFormSubmission = function() {
         $('#ai-pagegen-form').on('submit', function(e) {
             e.preventDefault();
             
+            console.log('[AI PageGen] Form submission started');
+            
             // Validate form before submission
             if (!AIPageGen.validateForm()) {
+                console.log('[AI PageGen] Form validation failed');
                 AIPageGen.showValidationErrors();
+                return;
+            }
+            
+            // Check if API key is configured
+            const settings = aiPageGen.settings || {};
+            if (!settings.openai_api_key) {
+                AIPageGen.showMessage('Please configure your OpenAI API key in settings first.', 'error');
                 return;
             }
             
@@ -62,10 +74,89 @@
             formData.append('action', 'ai_pagegen_generate');
             formData.append('nonce', aiPageGen.nonce);
             
+            console.log('[AI PageGen] Form data prepared:', Object.fromEntries(formData));
+            
             // Track analytics
             AIPageGen.trackEvent('content_generation_started');
             
             AIPageGen.generateContent(formData);
+        });
+    };
+    
+    /**
+     * Bind page creation functionality
+     */
+    AIPageGen.bindPageCreation = function() {
+        $(document).on('click', '#create-page-btn', function(e) {
+            e.preventDefault();
+            
+            if (!AIPageGen.currentGeneratedContent) {
+                AIPageGen.showMessage('No content available to create page.', 'error');
+                return;
+            }
+            
+            const $btn = $(this);
+            const originalText = $btn.html();
+            
+            // Set loading state
+            $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> ' + aiPageGen.strings.creating_page);
+            
+            // Get Elementor compatibility setting
+            const elementorCompatible = $('#elementor_compatible').is(':checked');
+            
+            const requestData = {
+                action: 'ai_pagegen_create_page',
+                nonce: aiPageGen.nonce,
+                content_data: JSON.stringify(AIPageGen.currentGeneratedContent),
+                elementor_compatible: elementorCompatible
+            };
+            
+            console.log('[AI PageGen] Creating page with data:', requestData);
+            
+            $.ajax({
+                url: aiPageGen.ajax_url,
+                type: 'POST',
+                data: requestData,
+                success: function(response) {
+                    console.log('[AI PageGen] Page creation response:', response);
+                    
+                    if (response.success) {
+                        AIPageGen.showMessage(response.data.message, 'success');
+                        
+                        // Update UI with edit/view links
+                        const actionsHtml = `
+                            <div class="page-created-actions" style="margin-top: 15px; padding: 15px; background: #f0f8f0; border-left: 4px solid #00a32a; border-radius: 4px;">
+                                <h4 style="margin: 0 0 10px 0; color: #00a32a;">✅ Page Created Successfully!</h4>
+                                <div class="action-buttons">
+                                    <a href="${response.data.edit_link}" class="button button-primary" target="_blank" style="margin-right: 10px;">
+                                        <span class="dashicons dashicons-edit"></span> Edit Page
+                                    </a>
+                                    <a href="${response.data.view_link}" class="button button-secondary" target="_blank">
+                                        <span class="dashicons dashicons-visibility"></span> View Page
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                        
+                        $('#page-actions').html(actionsHtml);
+                        
+                        AIPageGen.trackEvent('page_created_successfully', {
+                            post_id: response.data.post_id
+                        });
+                    } else {
+                        AIPageGen.showMessage(response.data || 'Failed to create page', 'error');
+                        console.error('[AI PageGen] Page creation failed:', response.data);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('[AI PageGen] Page creation AJAX error:', {xhr, status, error});
+                    AIPageGen.showMessage('Failed to create page. Please check the logs.', 'error');
+                },
+                complete: function() {
+                    // Reset button state
+                    $btn.prop('disabled', false).html(originalText);
+                }
+            });
         });
     };
     
@@ -191,88 +282,22 @@
     };
     
     /**
-     * Enhanced field validation with visual feedback
-     */
-    AIPageGen.validateField = function($field, type, isRealTime = false) {
-        const value = $field.val().trim();
-        const $group = $field.closest('.form-group');
-        
-        // Remove existing error states
-        $group.removeClass('error success');
-        $group.find('.error-message, .success-message').remove();
-        
-        let isValid = true;
-        let message = '';
-        let messageType = 'error';
-        
-        switch (type) {
-            case 'prompt':
-                if (value.length < 10) {
-                    isValid = false;
-                    message = 'Please enter a more detailed prompt (at least 10 characters).';
-                } else if (value.length > 2000) {
-                    isValid = false;
-                    message = 'Prompt is too long. Please keep it under 2000 characters.';
-                } else if (!isRealTime) {
-                    messageType = 'success';
-                    message = 'Prompt looks good!';
-                }
-                break;
-                
-            case 'api_key':
-                if (!value) {
-                    isValid = false;
-                    message = 'OpenAI API key is required.';
-                } else if (!value.startsWith('sk-')) {
-                    isValid = false;
-                    message = 'OpenAI API key should start with "sk-".';
-                } else if (value.length < 30) {
-                    isValid = false;
-                    message = 'API key appears to be too short.';
-                } else if (!isRealTime) {
-                    messageType = 'success';
-                    message = 'API key format looks correct.';
-                }
-                break;
-                
-            case 'color_scheme':
-                if (value && !AIPageGen.isValidColorScheme(value)) {
-                    isValid = false;
-                    message = 'Please enter valid hex codes (e.g., #FF0000,#00FF00) or color names.';
-                } else if (value && !isRealTime) {
-                    messageType = 'success';
-                    message = 'Color scheme is valid.';
-                }
-                break;
-        }
-        
-        // Apply validation state
-        if (!isValid) {
-            $group.addClass('error');
-            if (message) {
-                $group.append('<div class="error-message">' + message + '</div>');
-            }
-        } else if (message && messageType === 'success' && !isRealTime) {
-            $group.addClass('success');
-            $group.append('<div class="success-message">' + message + '</div>');
-        }
-        
-        return isValid;
-    };
-    
-    /**
-     * Enhanced content generation with progress tracking
+     * Enhanced content generation with comprehensive logging
      */
     AIPageGen.generateContent = function(formData) {
         const $form = $('#ai-pagegen-form');
         const $button = $('#generate-btn');
         const $preview = $('#content-preview');
+        const $pageActions = $('#page-actions');
         const $progress = AIPageGen.createProgressBar();
+        
+        console.log('[AI PageGen] Starting content generation');
         
         // Set loading state with animations
         $form.addClass('generating');
         $button.prop('disabled', true);
         $preview.html($progress);
+        $pageActions.hide();
         
         // Start progress animation
         AIPageGen.animateProgress();
@@ -286,31 +311,25 @@
             data: formData,
             processData: false,
             contentType: false,
-            timeout: 90000, // 90 seconds
-            xhr: function() {
-                const xhr = new window.XMLHttpRequest();
-                
-                // Add upload progress if available
-                xhr.upload.addEventListener('progress', function(evt) {
-                    if (evt.lengthComputable) {
-                        const percentComplete = (evt.loaded / evt.total) * 100;
-                        AIPageGen.updateProgress(percentComplete);
-                    }
-                }, false);
-                
-                return xhr;
-            },
+            timeout: 120000, // 2 minutes
             success: function(response) {
                 const duration = Date.now() - startTime;
+                console.log('[AI PageGen] Generation completed in', duration + 'ms', response);
                 
                 if (response.success) {
+                    AIPageGen.currentGeneratedContent = response.data.full_content;
                     AIPageGen.displayGeneratedContent(response.data);
                     AIPageGen.showMessage('Content generated successfully! (' + (duration/1000).toFixed(1) + 's)', 'success');
+                    
+                    // Show page creation button
+                    $pageActions.show();
+                    
                     AIPageGen.trackEvent('content_generation_success', {
                         duration: duration,
                         content_length: response.data.content ? response.data.content.length : 0
                     });
                 } else {
+                    console.error('[AI PageGen] Generation failed:', response.data);
                     AIPageGen.handleGenerationError(response.data || aiPageGen.strings.error);
                     AIPageGen.trackEvent('content_generation_error', {
                         error: response.data,
@@ -320,7 +339,7 @@
             },
             error: function(xhr, status, error) {
                 const duration = Date.now() - startTime;
-                console.error('AJAX Error:', {xhr, status, error});
+                console.error('[AI PageGen] AJAX Error:', {xhr, status, error, duration});
                 
                 let errorMessage = aiPageGen.strings.error;
                 
@@ -332,6 +351,13 @@
                     errorMessage = 'Invalid API key. Please check your OpenAI API key in settings.';
                 } else if (xhr.responseJSON && xhr.responseJSON.data) {
                     errorMessage = xhr.responseJSON.data;
+                } else if (xhr.responseText) {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        errorMessage = errorData.data || errorMessage;
+                    } catch(e) {
+                        console.log('[AI PageGen] Could not parse error response');
+                    }
                 }
                 
                 AIPageGen.handleGenerationError(errorMessage);
@@ -343,6 +369,7 @@
                 });
             },
             complete: function() {
+                console.log('[AI PageGen] Generation request completed');
                 // Remove loading state with animation
                 setTimeout(() => {
                     $form.removeClass('generating');
@@ -422,10 +449,6 @@
             html += AIPageGen.renderSEOPreview(data.seo_data);
         }
         
-        if (data.post_id && data.edit_link) {
-            html += AIPageGen.renderPostActions(data);
-        }
-        
         html += '</div>';
         
         // Animate content appearance
@@ -453,26 +476,6 @@
                 <div class="seo-title" style="color: #1a0dab; font-size: 18px; margin-bottom: 4px;">${seoData.title}</div>
                 <div class="seo-url" style="color: #006621; font-size: 14px; margin-bottom: 8px;">${window.location.origin}/sample-url</div>
                 <div class="seo-description" style="color: #545454; font-size: 13px; line-height: 1.4;">${seoData.description}</div>
-            </div>
-        `;
-    };
-    
-    /**
-     * Render post actions
-     */
-    AIPageGen.renderPostActions = function(data) {
-        return `
-            <div class="post-actions" style="margin-top: 24px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center;">
-                <div class="success-animation" style="margin-bottom: 16px;">✅</div>
-                <p style="font-weight: 600; color: #28a745; margin-bottom: 16px;">Post created successfully!</p>
-                <div class="action-buttons">
-                    <a href="${data.edit_link}" class="button button-primary ai-hover-lift" target="_blank" style="margin-right: 12px;">
-                        <span class="dashicons dashicons-edit"></span> Edit Post
-                    </a>
-                    <a href="${data.view_link || '#'}" class="button button-secondary ai-hover-lift" target="_blank">
-                        <span class="dashicons dashicons-visibility"></span> View Post
-                    </a>
-                </div>
             </div>
         `;
     };
@@ -522,12 +525,94 @@
                 <div class="error-icon" style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
                 <h3 style="color: #721c24; margin-bottom: 12px;">Generation Failed</h3>
                 <p style="margin-bottom: 20px;">${errorMessage}</p>
-                <button class="button button-secondary" onclick="location.reload()">Try Again</button>
+                <div class="error-actions">
+                    <button class="button button-secondary" onclick="location.reload()">Try Again</button>
+                    <a href="admin.php?page=ai-pagegen-logs" class="button" target="_blank" style="margin-left: 10px;">View Logs</a>
+                </div>
             </div>
         `;
         
         $preview.html(errorHtml);
         AIPageGen.showMessage(errorMessage, 'error');
+    };
+    
+    /**
+     * Enhanced field validation with visual feedback
+     */
+    AIPageGen.validateField = function($field, type, isRealTime = false) {
+        const value = $field.val().trim();
+        const $group = $field.closest('.form-group');
+        
+        // Remove existing error states
+        $group.removeClass('error success');
+        $group.find('.error-message, .success-message').remove();
+        
+        let isValid = true;
+        let message = '';
+        let messageType = 'error';
+        
+        switch (type) {
+            case 'prompt':
+                if (value.length < 10) {
+                    isValid = false;
+                    message = 'Please enter a more detailed prompt (at least 10 characters).';
+                } else if (value.length > 2000) {
+                    isValid = false;
+                    message = 'Prompt is too long. Please keep it under 2000 characters.';
+                } else if (!isRealTime) {
+                    messageType = 'success';
+                    message = 'Prompt looks good!';
+                }
+                break;
+                
+            case 'api_key':
+                if (!value) {
+                    isValid = false;
+                    message = 'OpenAI API key is required.';
+                } else if (!value.startsWith('sk-')) {
+                    isValid = false;
+                    message = 'OpenAI API key should start with "sk-".';
+                } else if (value.length < 30) {
+                    isValid = false;
+                    message = 'API key appears to be too short.';
+                } else if (!isRealTime) {
+                    messageType = 'success';
+                    message = 'API key format looks correct.';
+                }
+                break;
+                
+            case 'color_scheme':
+                if (value && !AIPageGen.isValidColorScheme(value)) {
+                    isValid = false;
+                    message = 'Please enter valid hex codes (e.g., #FF0000,#00FF00) or color names.';
+                } else if (value && !isRealTime) {
+                    messageType = 'success';
+                    message = 'Color scheme is valid.';
+                }
+                break;
+        }
+        
+        // Apply validation state
+        if (!isValid) {
+            $group.addClass('error');
+            if (message) {
+                $group.append('<div class="error-message">' + message + '</div>');
+            }
+        } else if (message && messageType === 'success' && !isRealTime) {
+            $group.addClass('success');
+            $group.append('<div class="success-message">' + message + '</div>');
+        }
+        
+        return isValid;
+    };
+    
+    AIPageGen.validateForm = function() {
+        const $prompt = $('#ai_prompt');
+        return AIPageGen.validateField($prompt, 'prompt');
+    };
+    
+    AIPageGen.showValidationErrors = function() {
+        AIPageGen.showMessage('Please fix the form errors before generating content.', 'error');
     };
     
     /**
@@ -596,7 +681,7 @@
                     <h2 style="margin-bottom: 16px; color: #2271b1;">Upgrade to Pro</h2>
                     <p style="margin-bottom: 24px; color: #666; line-height: 1.6;">
                         This feature is available in the Pro version. Unlock advanced AI capabilities, 
-                        SEO optimization, custom styling, and priority support.
+                        SEO optimization, custom styling, Elementor compatibility, and priority support.
                     </p>
                     <div style="margin-bottom: 30px;">
                         <a href="admin.php?page=ai-pagegen-license" class="button button-primary" style="margin-right: 12px;">
@@ -795,12 +880,27 @@
                     from { transform: scale(0.9); opacity: 0; }
                     to { transform: scale(1); opacity: 1; }
                 }
+                .dashicons.spin {
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
             </style>
         `;
         
         if (!$('#ai-pagegen-dynamic-styles').length) {
             $('head').append(css);
         }
+    };
+    
+    AIPageGen.updatePreviewPrompt = function(prompt) {
+        // Placeholder for preview updates
+    };
+    
+    AIPageGen.updatePreviewType = function(type) {
+        // Placeholder for preview updates
     };
     
 })(jQuery);

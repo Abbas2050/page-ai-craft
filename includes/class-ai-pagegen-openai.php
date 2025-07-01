@@ -1,7 +1,7 @@
 
 <?php
 /**
- * OpenAI API integration for AI PageGen
+ * OpenAI API communication for AI PageGen
  *
  * @package AI_PageGen
  * @since 1.0.0
@@ -18,9 +18,9 @@ if (!defined('ABSPATH')) {
 class AI_PageGen_OpenAI {
     
     /**
-     * OpenAI API endpoint
+     * OpenAI API base URL
      */
-    private $api_endpoint = 'https://api.openai.com/v1/chat/completions';
+    private $api_url = 'https://api.openai.com/v1/chat/completions';
     
     /**
      * API Key
@@ -31,12 +31,16 @@ class AI_PageGen_OpenAI {
      * Constructor
      */
     public function __construct() {
-        $options = get_option('ai_pagegen_settings');
-        $this->api_key = isset($options['openai_api_key']) ? $options['openai_api_key'] : '';
+        $settings = get_option('ai_pagegen_settings', array());
+        $this->api_key = isset($settings['openai_api_key']) ? $settings['openai_api_key'] : '';
+        
+        AI_PageGen_Logger::debug('OpenAI class initialized', array(
+            'has_api_key' => !empty($this->api_key)
+        ));
     }
     
     /**
-     * Generate content using OpenAI API
+     * Generate content using OpenAI
      *
      * @param string $prompt User prompt
      * @param array $options Generation options
@@ -44,68 +48,50 @@ class AI_PageGen_OpenAI {
      */
     public function generate_content($prompt, $options = array()) {
         if (empty($this->api_key)) {
-            throw new Exception(__('OpenAI API key is not configured', 'ai-pagegen'));
+            AI_PageGen_Logger::error('OpenAI API key not configured');
+            throw new Exception(__('OpenAI API key is not configured. Please set it in plugin settings.', 'ai-pagegen'));
         }
+        
+        AI_PageGen_Logger::info('Starting content generation', array(
+            'prompt_length' => strlen($prompt),
+            'options' => $options
+        ));
         
         // Build the system prompt based on options
         $system_prompt = $this->build_system_prompt($options);
         
         // Prepare the request
-        $messages = array(
-            array(
-                'role' => 'system',
-                'content' => $system_prompt
+        $request_data = array(
+            'model' => 'gpt-3.5-turbo',
+            'messages' => array(
+                array(
+                    'role' => 'system',
+                    'content' => $system_prompt
+                ),
+                array(
+                    'role' => 'user',
+                    'content' => $prompt
+                )
             ),
-            array(
-                'role' => 'user',
-                'content' => $prompt
-            )
-        );
-        
-        $body = array(
-            'model' => 'gpt-4',
-            'messages' => $messages,
-            'max_tokens' => 3000,
+            'max_tokens' => 2000,
             'temperature' => 0.7
         );
         
-        $headers = array(
-            'Authorization' => 'Bearer ' . $this->api_key,
-            'Content-Type' => 'application/json'
-        );
-        
-        $args = array(
-            'headers' => $headers,
-            'body' => wp_json_encode($body),
-            'timeout' => 60
-        );
+        AI_PageGen_Logger::debug('OpenAI request prepared', array(
+            'model' => $request_data['model'],
+            'system_prompt_length' => strlen($system_prompt)
+        ));
         
         // Make the API request
-        $response = wp_remote_post($this->api_endpoint, $args);
+        $response = $this->make_api_request($request_data);
         
-        if (is_wp_error($response)) {
-            throw new Exception(__('Failed to connect to OpenAI API', 'ai-pagegen'));
+        if (!$response) {
+            AI_PageGen_Logger::error('OpenAI API request failed');
+            return false;
         }
         
-        $response_code = wp_remote_retrieve_response_code($response);
-        $response_body = wp_remote_retrieve_body($response);
-        
-        if ($response_code !== 200) {
-            $error_data = json_decode($response_body, true);
-            $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : __('Unknown API error', 'ai-pagegen');
-            throw new Exception($error_message);
-        }
-        
-        $data = json_decode($response_body, true);
-        
-        if (!isset($data['choices'][0]['message']['content'])) {
-            throw new Exception(__('Invalid API response', 'ai-pagegen'));
-        }
-        
-        $generated_content = $data['choices'][0]['message']['content'];
-        
-        // Parse the generated content
-        return $this->parse_generated_content($generated_content, $options);
+        // Process the response
+        return $this->process_response($response, $options);
     }
     
     /**
@@ -115,88 +101,267 @@ class AI_PageGen_OpenAI {
      * @return string System prompt
      */
     private function build_system_prompt($options) {
-        $prompt = "You are a professional WordPress content generator. Generate high-quality, engaging content based on the user's request.";
-        
-        $prompt .= "\n\nRequirements:";
-        $prompt .= "\n- Return content in HTML format suitable for WordPress";
-        $prompt .= "\n- Use semantic HTML5 elements";
-        $prompt .= "\n- Include proper heading hierarchy (H1, H2, H3, etc.)";
-        $prompt .= "\n- Make content engaging and well-structured";
+        $prompt = "You are a professional content creator for WordPress. ";
         
         // Post type specific instructions
-        if (isset($options['post_type'])) {
-            if ($options['post_type'] === 'page') {
-                $prompt .= "\n- Generate content suitable for a WordPress page (more formal, comprehensive)";
-            } else {
-                $prompt .= "\n- Generate content suitable for a blog post (engaging, conversational)";
-            }
+        if (isset($options['post_type']) && $options['post_type'] === 'page') {
+            $prompt .= "Create a complete webpage with proper HTML structure. ";
+        } else {
+            $prompt .= "Create a blog post with engaging content. ";
         }
         
         // SEO optimization
-        if (!empty($options['seo_optimization']) && !empty($options['seo_keywords'])) {
-            $prompt .= "\n- Optimize for SEO with keywords: " . $options['seo_keywords'];
-            $prompt .= "\n- Include keywords naturally in headings and content";
-            $prompt .= "\n- Suggest SEO title and meta description";
-        }
-        
-        // Color scheme
-        if (!empty($options['color_scheme'])) {
-            $prompt .= "\n- Apply color scheme: " . $options['color_scheme'];
-            $prompt .= "\n- Use inline styles or suggest CSS for color implementation";
+        if (isset($options['seo_optimization']) && $options['seo_optimization']) {
+            $prompt .= "Include SEO-optimized content with proper heading structure (H1, H2, H3), ";
+            $prompt .= "meta description, and incorporate the keywords: " . ($options['seo_keywords'] ?? '') . ". ";
         }
         
         // Page sections
         if (!empty($options['page_sections'])) {
-            $prompt .= "\n- Structure content with these sections: " . $options['page_sections'];
-            $prompt .= "\n- Each section should be distinct and well-organized";
+            $prompt .= "Structure the content with these sections: " . $options['page_sections'] . ". ";
         }
         
-        // Header/Footer
-        if (!empty($options['header_footer']) && $options['header_footer'] === 'custom') {
-            $prompt .= "\n- Include suggestions for custom header and footer content";
+        // Elementor compatibility
+        if (isset($options['elementor_compatible']) && $options['elementor_compatible']) {
+            $prompt .= "Make the content compatible with Elementor page builder using proper HTML structure and CSS classes. ";
         }
         
-        $prompt .= "\n\nFormat your response as JSON with the following structure:";
-        $prompt .= "\n{";
-        $prompt .= "\n  \"title\": \"Generated title\",";
-        $prompt .= "\n  \"content\": \"HTML content here\",";
-        $prompt .= "\n  \"seo_title\": \"SEO optimized title (if SEO enabled)\",";
-        $prompt .= "\n  \"meta_description\": \"Meta description (if SEO enabled)\",";
-        $prompt .= "\n  \"excerpt\": \"Brief excerpt\"";
-        $prompt .= "\n}";
+        // Color scheme
+        if (!empty($options['color_scheme'])) {
+            $prompt .= "Consider this color scheme: " . $options['color_scheme'] . " when suggesting design elements. ";
+        }
+        
+        $prompt .= "Return the response as JSON with the following structure: ";
+        $prompt .= '{"title": "Page/Post Title", "content": "HTML content", "excerpt": "Brief excerpt"}';
+        
+        if (isset($options['seo_optimization']) && $options['seo_optimization']) {
+            $prompt .= ', "seo_title": "SEO optimized title", "meta_description": "Meta description under 160 characters"';
+        }
+        
+        $prompt .= '. Ensure all HTML is valid and properly formatted for WordPress.';
         
         return $prompt;
     }
     
     /**
-     * Parse generated content
+     * Make API request to OpenAI
      *
-     * @param string $content Generated content from OpenAI
-     * @param array $options Generation options
-     * @return array Parsed content array
+     * @param array $data Request data
+     * @return array|false API response or false on failure
      */
-    private function parse_generated_content($content, $options) {
-        // Try to parse as JSON first
-        $json_data = json_decode($content, true);
+    private function make_api_request($data) {
+        $headers = array(
+            'Authorization' => 'Bearer ' . $this->api_key,
+            'Content-Type' => 'application/json',
+        );
         
-        if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
-            // Valid JSON response
-            return array(
-                'title' => isset($json_data['title']) ? sanitize_text_field($json_data['title']) : __('Generated Content', 'ai-pagegen'),
-                'content' => isset($json_data['content']) ? wp_kses_post($json_data['content']) : $content,
-                'seo_title' => isset($json_data['seo_title']) ? sanitize_text_field($json_data['seo_title']) : '',
-                'meta_description' => isset($json_data['meta_description']) ? sanitize_text_field($json_data['meta_description']) : '',
-                'excerpt' => isset($json_data['excerpt']) ? sanitize_text_field($json_data['excerpt']) : ''
+        $args = array(
+            'headers' => $headers,
+            'body' => json_encode($data),
+            'method' => 'POST',
+            'timeout' => 60,
+        );
+        
+        AI_PageGen_Logger::debug('Making OpenAI API request');
+        
+        $response = wp_remote_request($this->api_url, $args);
+        
+        if (is_wp_error($response)) {
+            AI_PageGen_Logger::error('OpenAI API request error', array(
+                'error' => $response->get_error_message()
+            ));
+            throw new Exception($response->get_error_message());
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        
+        AI_PageGen_Logger::debug('OpenAI API response received', array(
+            'status_code' => $response_code,
+            'response_length' => strlen($response_body)
+        ));
+        
+        if ($response_code !== 200) {
+            $error_data = json_decode($response_body, true);
+            $error_message = 'OpenAI API Error (Code: ' . $response_code . ')';
+            
+            if (isset($error_data['error']['message'])) {
+                $error_message .= ': ' . $error_data['error']['message'];
+            }
+            
+            AI_PageGen_Logger::error('OpenAI API error response', array(
+                'status_code' => $response_code,
+                'error_data' => $error_data
+            ));
+            
+            throw new Exception($error_message);
+        }
+        
+        $decoded_response = json_decode($response_body, true);
+        
+        if (!$decoded_response) {
+            AI_PageGen_Logger::error('Failed to decode OpenAI response');
+            throw new Exception(__('Failed to decode API response', 'ai-pagegen'));
+        }
+        
+        return $decoded_response;
+    }
+    
+    /**
+     * Process OpenAI response
+     *
+     * @param array $response API response
+     * @param array $options Generation options
+     * @return array Processed content
+     */
+    private function process_response($response, $options) {
+        if (!isset($response['choices'][0]['message']['content'])) {
+            AI_PageGen_Logger::error('Invalid OpenAI response structure', array(
+                'response' => $response
+            ));
+            throw new Exception(__('Invalid API response structure', 'ai-pagegen'));
+        }
+        
+        $content = $response['choices'][0]['message']['content'];
+        
+        AI_PageGen_Logger::debug('Processing OpenAI response', array(
+            'content_length' => strlen($content)
+        ));
+        
+        // Try to decode as JSON first
+        $decoded_content = json_decode($content, true);
+        
+        if ($decoded_content) {
+            AI_PageGen_Logger::info('Content generated successfully as JSON');
+            return $decoded_content;
+        }
+        
+        // Fallback: treat as plain content
+        AI_PageGen_Logger::warning('OpenAI returned non-JSON content, creating fallback structure');
+        
+        // Extract title from content if possible
+        $title = $this->extract_title_from_content($content);
+        
+        // Clean and format content
+        $formatted_content = $this->format_content($content);
+        
+        $result = array(
+            'title' => $title,
+            'content' => $formatted_content,
+            'excerpt' => $this->generate_excerpt($formatted_content)
+        );
+        
+        // Add SEO data if requested
+        if (isset($options['seo_optimization']) && $options['seo_optimization']) {
+            $result['seo_title'] = $title;
+            $result['meta_description'] = $this->generate_meta_description($formatted_content);
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Extract title from content
+     *
+     * @param string $content Content
+     * @return string Extracted title
+     */
+    private function extract_title_from_content($content) {
+        // Look for h1 tag
+        if (preg_match('/<h1[^>]*>(.*?)<\/h1>/i', $content, $matches)) {
+            return strip_tags($matches[1]);
+        }
+        
+        // Look for first line that looks like a title
+        $lines = explode("\n", strip_tags($content));
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line) && strlen($line) < 100) {
+                return $line;
+            }
+        }
+        
+        return __('AI Generated Content', 'ai-pagegen');
+    }
+    
+    /**
+     * Format content for WordPress
+     *
+     * @param string $content Raw content
+     * @return string Formatted content
+     */
+    private function format_content($content) {
+        // Basic HTML cleanup
+        $content = trim($content);
+        
+        // Ensure paragraphs are properly wrapped
+        if (strpos($content, '<p>') === false && strpos($content, '<h') === false) {
+            $content = wpautop($content);
+        }
+        
+        return $content;
+    }
+    
+    /**
+     * Generate excerpt from content
+     *
+     * @param string $content Full content
+     * @return string Excerpt
+     */
+    private function generate_excerpt($content) {
+        $plain_text = wp_strip_all_tags($content);
+        $excerpt = wp_trim_words($plain_text, 30);
+        return $excerpt;
+    }
+    
+    /**
+     * Generate meta description
+     *
+     * @param string $content Full content
+     * @return string Meta description
+     */
+    private function generate_meta_description($content) {
+        $plain_text = wp_strip_all_tags($content);
+        $description = wp_trim_words($plain_text, 25);
+        
+        // Ensure it's under 160 characters
+        if (strlen($description) > 157) {
+            $description = substr($description, 0, 157) . '...';
+        }
+        
+        return $description;
+    }
+    
+    /**
+     * Test API connection
+     *
+     * @return bool True if connection successful
+     */
+    public function test_connection() {
+        if (empty($this->api_key)) {
+            return false;
+        }
+        
+        try {
+            $test_data = array(
+                'model' => 'gpt-3.5-turbo',
+                'messages' => array(
+                    array(
+                        'role' => 'user',
+                        'content' => 'Hello, this is a test.'
+                    )
+                ),
+                'max_tokens' => 10
             );
-        } else {
-            // Fallback for non-JSON response
-            return array(
-                'title' => __('Generated Content', 'ai-pagegen'),
-                'content' => wp_kses_post($content),
-                'seo_title' => '',
-                'meta_description' => '',
-                'excerpt' => wp_trim_words(strip_tags($content), 20)
-            );
+            
+            $response = $this->make_api_request($test_data);
+            return !empty($response);
+            
+        } catch (Exception $e) {
+            AI_PageGen_Logger::error('API connection test failed', array(
+                'error' => $e->getMessage()
+            ));
+            return false;
         }
     }
 }
