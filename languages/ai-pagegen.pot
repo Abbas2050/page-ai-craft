@@ -1,0 +1,297 @@
+
+# AI PageGen - WordPress Plugin
+# Copyright (C) 2024
+# This file is distributed under the same license as the AI PageGen package.
+msgid ""
+msgstr ""
+"Project-Id-Version: AI PageGen 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ai-pagegen.php:35
+msgid "AI PageGen"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:85
+msgid "Generate Content"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:92
+msgid "Settings"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:108
+msgid "General Settings"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:115
+msgid "OpenAI API Key"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:123
+msgid "Default Post Type"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:179
+msgid "Generating content..."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:180
+msgid "An error occurred. Please try again."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:181
+msgid "This feature is available in Pro version only."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:196
+msgid "Content Prompt"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:197
+msgid "Describe what you want to generate..."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:202
+msgid "Post Type"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:204
+msgid "Blog Post"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:205
+msgid "Page"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:207
+#: includes/class-ai-pagegen-admin.php:218
+#: includes/class-ai-pagegen-admin.php:228
+#: includes/class-ai-pagegen-admin.php:242
+#: includes/class-ai-pagegen-admin.php:252
+msgid "Available in Pro version"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:213
+msgid "Header/Footer Style"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:215
+msgid "Use Theme Default"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:216
+msgid "Custom AI Generated"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:224
+msgid "Enable SEO Optimization"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:232
+msgid "SEO Keywords"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:233
+msgid "Enter keywords separated by commas"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:238
+msgid "Color Scheme"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:239
+msgid "e.g., #2271b1,#ffffff,#000000 or blue/white/dark"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:248
+msgid "Page Sections"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:249
+msgid "e.g., Hero, Services, About, Contact"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:256
+msgid "Generate Content"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:262
+msgid "Generated Content Preview"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:264
+msgid "Generated content will appear here..."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:275
+msgid "AI PageGen Settings"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:287
+msgid "Configure the general settings for AI PageGen."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:295
+msgid "Enter your OpenAI API key. You can get one from OpenAI's website."
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:304
+#: includes/class-ai-pagegen-admin.php:307
+msgid "Post"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:308
+msgid "Page"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:318
+msgid "Security check failed"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:323
+msgid "You do not have permission to perform this action"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:336
+msgid "Pro features require upgrading to Pro version"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:359
+msgid "Failed to create post/page"
+msgstr ""
+
+#: includes/class-ai-pagegen-admin.php:361
+msgid "Failed to generate content"
+msgstr ""
+
+#: includes/class-ai-pagegen-openai.php:62
+msgid "OpenAI API key is not configured"
+msgstr ""
+
+#: includes/class-ai-pagegen-openai.php:98
+msgid "Failed to connect to OpenAI API"
+msgstr ""
+
+#: includes/class-ai-pagegen-openai.php:106
+msgid "Unknown API error"
+msgstr ""
+
+#: includes/class-ai-pagegen-openai.php:112
+msgid "Invalid API response"
+msgstr ""
+
+#: includes/class-ai-pagegen-openai.php:202
+msgid "Generated Content"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:82
+msgid "License"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:95
+msgid "AI PageGen License"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:98
+msgid "You are using the free version of AI PageGen. Upgrade to Pro to unlock all features!"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:102
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:103
+msgid "Unlock powerful features with AI PageGen Pro:"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:105
+msgid "Post/Page type selection"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:106
+msgid "Custom header/footer generation"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:107
+msgid "Advanced SEO optimization"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:108
+msgid "Custom color schemes"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:109
+msgid "Page section structuring"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:110
+msgid "Priority support"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:112
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:120
+msgid "License Key"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:123
+msgid "Enter your license key to activate Pro features."
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:127
+msgid "License Status"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:132
+msgid "✓ Active"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:135
+msgid "✗ Expired"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:138
+msgid "✗ Invalid"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:141
+msgid "Free Version"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:150
+msgid "Deactivate License"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:152
+msgid "Activate License"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:174
+msgid "Please enter a license key."
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:182
+msgid "License activated successfully!"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:193
+msgid "License deactivated."
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:210
+msgid "License is valid"
+msgstr ""
+
+#: includes/class-ai-pagegen-licensing.php:216
+msgid "Invalid license key. Please check your key and try again."
+msgstr ""
