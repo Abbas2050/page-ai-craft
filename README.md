@@ -1,195 +1,154 @@
 
-# AI PageGen - WordPress Plugin
+# AI PageGen - Professional WordPress Content Generator
 
-A professional WordPress plugin that generates high-quality posts and pages using OpenAI's GPT API. Available in Free and Pro versions with advanced customization options.
+[![WordPress Plugin](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org/)
+[![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net/)
+[![License](https://img.shields.io/badge/License-GPL%20v2-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+[![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)](https://github.com/your-repo/ai-pagegen)
 
-## 🚀 Quick Start Guide
+A professional WordPress plugin that generates high-quality posts and pages using OpenAI's GPT API. Perfect for content creators, marketers, and website owners who want to streamline their content creation process.
+
+## 🎯 Perfect For
+
+- **Content Creators**: Generate blog posts, articles, and web pages instantly
+- **Marketing Agencies**: Create client content at scale
+- **Website Owners**: Populate new sites with quality content
+- **SEO Professionals**: Generate SEO-optimized content with proper structure
+- **Developers**: White-label solution for client projects
+
+## 🚀 Quick Setup Guide
 
 ### 1. Installation
-1. Upload the `ai-pagegen` folder to the `/wp-content/plugins/` directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. You'll see a new "AI PageGen" menu item in your WordPress admin sidebar
+1. **Via WordPress Admin**:
+   - Go to `Plugins > Add New`
+   - Upload the `ai-pagegen.zip` file
+   - Click "Install Now" and then "Activate"
 
-### 2. Configuration & API Key Setup
-After activation, you **MUST** configure your OpenAI API key:
+2. **Via FTP**:
+   - Extract the plugin files
+   - Upload the `ai-pagegen` folder to `/wp-content/plugins/`
+   - Activate through WordPress admin
 
-1. **Navigate to Settings**: Go to **AI PageGen > Settings** in your WordPress admin
-2. **Get OpenAI API Key**: 
-   - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Sign up/login to your OpenAI account
-   - Click "Create new secret key"
-   - Copy the generated API key (starts with `sk-`)
-3. **Enter API Key**: Paste your API key in the "OpenAI API Key" field
-4. **Configure Defaults**: Set your preferred default options:
-   - Default post type (Post or Page)
-   - Header/Footer preference
-   - Color scheme
-5. **Save Settings**: Click "Save Changes"
+### 2. ⚡ Essential Configuration
 
-### 3. Generate Your First Content
+After activation, you **MUST** set up your OpenAI API key:
+
+#### Step 1: Get Your OpenAI API Key
+1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Sign up or log in to your OpenAI account
+3. Click **"Create new secret key"**
+4. Copy the generated key (starts with `sk-`)
+5. **Important**: Keep this key secure and never share it publicly
+
+#### Step 2: Configure the Plugin
+1. In WordPress admin, go to **AI PageGen > Settings**
+2. Paste your API key in the **"OpenAI API Key"** field
+3. Configure default settings:
+   - **Default Post Type**: Choose Post or Page
+   - **Default Author**: Select content author
+   - **Content Status**: Draft, Published, or Private
+4. Click **"Save Settings"**
+
+#### Step 3: Test Your Setup
 1. Go to **AI PageGen > Generate Content**
-2. Enter a detailed prompt (e.g., "Create a blog post about sustainable gardening tips")
-3. Click "Generate Content"
-4. Review the generated content in the preview
-5. Edit the draft post/page as needed
+2. Enter a test prompt: `"Create a blog post about WordPress best practices"`
+3. Click **"Generate Content"**
+4. If successful, you'll see generated content and a new draft post
 
-## ✨ Features
+### 3. 📝 Your First Content Generation
+
+1. **Navigate**: Go to **AI PageGen > Generate Content**
+2. **Write Prompt**: Enter detailed description of what you want
+3. **Configure** (Pro users): Set post type, SEO options, colors, sections
+4. **Generate**: Click the generate button
+5. **Review**: Check the preview and edit if needed
+6. **Publish**: The content is saved as a draft for your review
+
+## ✨ Features Overview
 
 ### 🆓 Free Version
-- **Basic AI Content Generation**: Create posts and pages using OpenAI's GPT API
-- **Simple Prompt Interface**: Enter your content requirements in plain English
-- **Draft Creation**: Generated content is saved as drafts for review
-- **Theme Integration**: Uses your current theme's styling
-- **WordPress Standards**: Follows WordPress coding standards and security practices
+- **AI Content Generation**: Create posts and pages using OpenAI GPT
+- **WordPress Integration**: Seamlessly integrates with your WordPress site
+- **Draft Creation**: Generated content saved as drafts for review
+- **Theme Compatibility**: Works with any WordPress theme
+- **Translation Ready**: Fully translatable interface
 
 ### 💎 Pro Version Features
-- **📝 Post Type Selection**: Choose between posts and pages
-- **🎨 Header/Footer Options**: 
-  - Use theme default styling
-  - Generate custom AI-powered headers and footers
-- **🔍 SEO Optimization**: 
-  - Automatic SEO title generation
-  - Meta description creation
-  - Keyword optimization
+- **🎯 Advanced Post Types**: Choose between Posts, Pages, and Custom Post Types
+- **🎨 Smart Styling**: 
+  - Custom color schemes with hex codes
+  - Color name support (blue/white/dark)
+  - Automatic CSS generation and application
+- **🔍 SEO Powerhouse**: 
+  - Automatic SEO title and meta description generation
+  - Keyword optimization and density analysis
   - Proper heading hierarchy (H1, H2, H3)
-  - Compatible with Yoast SEO and RankMath
-- **🎨 Custom Color Schemes**: 
-  - Apply custom color combinations
-  - Support for hex codes: `#2271b1,#ffffff,#000000`
-  - Color names: `blue/white/dark`
-  - Automatic CSS generation
-- **📋 Structured Page Sections**: 
-  - Define content sections: "Hero, Services, About, Contact"
-  - Organized content structure
-  - Perfect for landing pages and business websites
+  - Schema markup integration
+  - Compatible with Yoast SEO, RankMath, and All-in-One SEO
+- **📋 Structured Content**:
+  - Define page sections: "Hero, Services, About, Contact"
+  - Organized content blocks perfect for landing pages
+  - Business website templates
+- **🎭 Header/Footer Control**:
+  - Use theme defaults or generate custom AI headers/footers
+  - Perfect for landing pages and special content
 - **⚡ Priority Support**: Get help when you need it
+- **🔄 Regular Updates**: New features and improvements
 
-## 🛠️ Configuration Options
+## 📋 System Requirements
+
+### Minimum Requirements
+- **WordPress**: 5.0 or higher
+- **PHP**: 7.4 or higher (8.0+ recommended)
+- **MySQL**: 5.6 or higher
+- **Memory**: 128MB PHP memory limit (256MB recommended)
+- **OpenAI API**: Valid API key with sufficient credits
+
+### Recommended Environment
+- **WordPress**: Latest version
+- **PHP**: 8.1 or higher
+- **Memory**: 512MB or higher
+- **SSL**: HTTPS enabled for secure API communication
+
+## 🎨 Prompting Best Practices
+
+### ✅ Effective Prompts
+```
+Good: "Create a comprehensive guide about email marketing for small businesses. Include sections on list building, automation, and analytics. Target audience is entrepreneurs with basic marketing knowledge. Use a professional but approachable tone."
+
+Great: "Write a landing page for a fitness coaching service targeting working professionals aged 25-45. Include: compelling hero section with benefits, social proof testimonials, 3-tier pricing structure, and strong call-to-action. Focus on time-efficient workouts and stress relief."
+```
+
+### ❌ Avoid These
+```
+Poor: "Write about fitness"
+Poor: "Make a business page"
+Poor: "Create content"
+```
+
+### 🎯 Prompt Templates
+
+**Blog Post Template:**
+```
+Create a [WORD COUNT] blog post about [TOPIC] for [TARGET AUDIENCE]. Include [SPECIFIC SECTIONS]. Use a [TONE] tone and focus on [KEY BENEFITS/OUTCOMES].
+```
+
+**Landing Page Template:**
+```
+Generate a landing page for [PRODUCT/SERVICE] targeting [AUDIENCE]. Include: hero section with [MAIN BENEFIT], features section highlighting [KEY FEATURES], testimonials, pricing with [NUMBER] tiers, and FAQ addressing [MAIN CONCERNS].
+```
+
+## 🛠️ Advanced Configuration
 
 ### API Settings
-- **OpenAI API Key**: Your secret key from OpenAI Platform (Required)
-- **Model Selection**: Choose GPT model (default: gpt-3.5-turbo)
-- **Request Timeout**: API request timeout in seconds
-
-### Content Defaults
-- **Default Post Type**: Post or Page
-- **Default Status**: Draft, Published, or Private
-- **Default Author**: Current user or specific author
-- **Header/Footer**: Theme default or custom AI-generated
-
-### SEO Settings (Pro)
-- **Enable SEO Optimization**: Automatic SEO enhancements
-- **Default Keywords**: Fallback keywords for content
-- **Meta Description Length**: Character limit for descriptions
-
-### Styling Options (Pro)
-- **Color Schemes**: Custom color combinations
-- **CSS Integration**: How styles are applied to content
-- **Theme Compatibility**: Override or complement theme styles
-
-## 🎯 Best Practices for Prompts
-
-### Effective Prompting Tips
-1. **Be Specific**: Instead of "write about cars", use "write a comprehensive guide about electric car maintenance for beginners"
-2. **Include Context**: Mention your target audience, tone, and purpose
-3. **Specify Structure**: Request specific sections or formats
-4. **Provide Examples**: Reference similar content you want to emulate
-
-### Sample Prompts
-```
-✅ Good: "Create a professional blog post about digital marketing trends in 2024, targeting small business owners. Include sections on social media, email marketing, and SEO. Use a conversational but authoritative tone."
-
-❌ Poor: "Write about marketing"
-
-✅ Good: "Generate a landing page for a fitness coaching service. Include a hero section with compelling headline, benefits section, testimonials, pricing, and contact form. Target audience is working professionals aged 25-45."
-
-❌ Poor: "Make a fitness page"
+```php
+// In your wp-config.php (optional)
+define('AI_PAGEGEN_API_TIMEOUT', 60); // API timeout in seconds
+define('AI_PAGEGEN_MAX_TOKENS', 2000); // Maximum tokens per request
+define('AI_PAGEGEN_TEMPERATURE', 0.7); // Creativity level (0-1)
 ```
 
-## 🔧 Technical Requirements
-
-- **WordPress**: 5.0 or higher
-- **PHP**: 7.4 or higher
-- **OpenAI API**: Valid API key with sufficient credits
-- **Memory**: Minimum 128MB PHP memory limit recommended
-- **Internet**: Stable connection for API requests
-
-## 📁 File Structure
-
-```
-ai-pagegen/
-├── ai-pagegen.php                    # Main plugin file
-├── includes/                         # Core functionality
-│   ├── class-ai-pagegen-admin.php           # Admin interface & UI
-│   ├── class-ai-pagegen-openai.php          # OpenAI API integration
-│   ├── class-ai-pagegen-post-creator.php    # Post/page creation logic
-│   └── class-ai-pagegen-licensing.php       # Pro licensing system
-├── assets/                           # Frontend assets
-│   ├── css/
-│   │   └── admin.css                # Admin panel styling
-│   └── js/
-│       └── admin.js                 # Admin panel interactions
-├── languages/                       # Translation files
-│   └── ai-pagegen.pot              # Translation template
-└── README.md                       # This file
-```
-
-## 🌍 Translation & Localization
-
-The plugin is fully translatable and ready for international use:
-
-### Available Languages
-- English (default)
-- Translation template provided (`ai-pagegen.pot`)
-
-### Adding Translations
-1. Copy `languages/ai-pagegen.pot`
-2. Rename to your locale (e.g., `ai-pagegen-es_ES.po`)
-3. Translate using Poedit or similar tool
-4. Generate `.mo` file
-5. Upload both files to `languages/` directory
-
-### Contributing Translations
-We welcome community translations! Submit translated files via GitHub or contact support.
-
-## 🔐 Security Features
-
-- **Nonce Verification**: All forms protected against CSRF attacks
-- **Capability Checks**: User permission validation
-- **Input Sanitization**: All user inputs properly sanitized
-- **API Key Encryption**: Secure storage of sensitive data
-- **WordPress Standards**: Follows WordPress security guidelines
-
-## 🚀 GitHub Integration & Development
-
-### Setting Up GitHub Sync
-1. **Create Repository**: Create a new repository on GitHub
-2. **Clone Locally**: `git clone https://github.com/yourusername/ai-pagegen.git`
-3. **Upload Plugin**: Copy plugin files to repository
-4. **Commit Changes**: 
-   ```bash
-   git add .
-   git commit -m "Initial AI PageGen plugin"
-   git push origin main
-   ```
-
-### Development Workflow
-1. **Local Development**: Edit files locally using your preferred IDE
-2. **Testing**: Test changes on local WordPress installation
-3. **Version Control**: Commit changes with descriptive messages
-4. **Deployment**: Upload updated files to production
-
-### Contributing
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/new-feature`
-3. Make changes and test thoroughly
-4. Commit changes: `git commit -m "Add new feature"`
-5. Push to branch: `git push origin feature/new-feature`
-6. Submit pull request
-
-## 🎨 Customization & Hooks
-
-### Available Hooks
+### Custom Hooks for Developers
 ```php
 // Modify generated content before saving
 add_filter('ai_pagegen_before_save_content', function($content, $options) {
@@ -199,146 +158,237 @@ add_filter('ai_pagegen_before_save_content', function($content, $options) {
 
 // Customize OpenAI request parameters
 add_filter('ai_pagegen_openai_request_args', function($args) {
-    $args['temperature'] = 0.8; // Adjust creativity
-    $args['max_tokens'] = 2000;  // Limit response length
+    $args['temperature'] = 0.8;
+    $args['max_tokens'] = 1500;
     return $args;
 });
-
-// Modify post data before creation
-add_filter('ai_pagegen_post_data', function($post_data, $generated_content) {
-    // Add custom fields, modify title, etc.
-    return $post_data;
-}, 10, 2);
 ```
 
-### Custom Styling
-Override plugin styles by adding CSS to your theme:
-```css
-/* Customize admin interface */
-.ai-pagegen-form-container {
-    background: #your-color;
-}
+## 🔐 Security Features
 
-/* Style generated content */
-.ai-generated-content {
-    font-family: your-font;
-}
-```
+- **Nonce Verification**: All forms protected against CSRF attacks
+- **Capability Checks**: Proper user permission validation
+- **Input Sanitization**: All inputs sanitized and validated
+- **API Key Encryption**: Secure storage of sensitive credentials
+- **WordPress Standards**: Follows WordPress security guidelines
 
-## 💰 Upgrading to Pro
+## 🌍 Marketplace Compatibility
 
-### How to Upgrade
-1. **Purchase License**: Visit our website to purchase Pro license
-2. **Activate License**: Go to **AI PageGen > License** in WordPress admin
-3. **Enter License Key**: Input your license key and activate
-4. **Enjoy Pro Features**: All Pro features will be immediately available
+This plugin is designed for distribution on:
 
-### Pro License Benefits
-- ✅ All Pro features unlocked
-- ✅ Priority email support
-- ✅ Regular updates and new features
-- ✅ Advanced customization options
-- ✅ Commercial use license
+### 🏪 CodeCanyon (Envato Market)
+- ✅ Meets all CodeCanyon quality standards
+- ✅ Professional code structure and documentation
+- ✅ GPL-compatible licensing
+- ✅ Comprehensive user documentation
+- ✅ Professional support system ready
+
+### 🎨 ThemeForest Integration
+- ✅ Works seamlessly with any WordPress theme
+- ✅ No theme conflicts or style overrides
+- ✅ Responsive design compatibility
+- ✅ Easy white-label integration for theme developers
+
+### 🌐 WordPress.org Repository
+- ✅ Follows WordPress Coding Standards
+- ✅ Internationalization ready
+- ✅ Accessibility guidelines compliant
+- ✅ Security best practices implemented
+
+## 💰 Licensing & Commercial Use
+
+### Free Version
+- ✅ GPL v2 or later
+- ✅ Use on unlimited personal sites
+- ✅ Modify and distribute under GPL
+
+### Pro Version
+- ✅ Commercial license included
+- ✅ Use on unlimited client sites
+- ✅ White-label rights
+- ✅ Reseller opportunities available
+
+## 🚀 For Developers & Agencies
+
+### White-Label Ready
+- Easily rebrand with your company name
+- Custom admin interface colors
+- Replace logos and branding elements
+- Full source code access
+
+### Client-Friendly Features
+- Simple, intuitive interface
+- No technical knowledge required
+- Comprehensive help documentation
+- Video tutorials available
+
+### Scalable Architecture
+- Modular code structure
+- Easy to extend and customize
+- Hook system for modifications
+- Compatible with multisite
+
+## 📊 Performance & Optimization
+
+### Efficient API Usage
+- Smart caching system
+- Request optimization
+- Error handling and retry logic
+- Usage tracking and limits
+
+### WordPress Performance
+- Minimal database queries
+- Optimized asset loading
+- No frontend performance impact
+- Compatible with caching plugins
 
 ## 🆘 Troubleshooting
 
-### Common Issues
+### Common Issues & Solutions
 
-**"API Key Invalid" Error**
-- Verify your OpenAI API key is correct
-- Check if key has sufficient credits
-- Ensure key is not expired
+**❌ "API Key Invalid" Error**
+- ✅ Verify your OpenAI API key is correct (starts with `sk-`)
+- ✅ Check if your OpenAI account has sufficient credits
+- ✅ Ensure the API key hasn't expired
+- ✅ Test the key directly on OpenAI's platform
 
-**"Request Timeout" Error**
-- Check your internet connection
-- Increase timeout in settings
-- Try with shorter prompts
+**❌ "Request Timeout" Error**
+- ✅ Check your internet connection stability
+- ✅ Increase timeout in WordPress (add to wp-config.php): `define('AI_PAGEGEN_API_TIMEOUT', 120);`
+- ✅ Try with shorter, simpler prompts
+- ✅ Contact your hosting provider about external API restrictions
 
-**Generated Content Not Saving**
-- Verify user has proper permissions
-- Check WordPress memory limit
-- Review error logs for details
+**❌ Generated Content Not Saving**
+- ✅ Verify current user has proper WordPress permissions
+- ✅ Check WordPress memory limit (`WP_MEMORY_LIMIT`)
+- ✅ Review error logs in WordPress admin or cPanel
+- ✅ Ensure your theme supports the content format
 
-**Pro Features Not Working**
-- Verify license key is active
-- Clear browser cache
-- Contact support if issues persist
+**❌ Plugin Activation Error**
+- ✅ Check PHP version (7.4+ required)
+- ✅ Verify WordPress version (5.0+ required)
+- ✅ Ensure proper file permissions (644 for files, 755 for folders)
+- ✅ Deactivate conflicting plugins temporarily
 
-### Getting Help
+### Debug Mode
+Enable WordPress debug mode for detailed error information:
+```php
+// Add to wp-config.php
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+define('WP_DEBUG_DISPLAY', false);
+```
 
-**Free Version Support**
-- WordPress.org plugin forums
-- Documentation and FAQ
-- Community support
+## 📞 Support & Community
 
-**Pro Version Support**
-- Priority email support: support@yourdomain.com
-- Advanced troubleshooting assistance
-- Feature request consideration
+### Free Version Support
+- 📖 [Comprehensive Documentation](https://your-domain.com/docs)
+- 💬 [WordPress Community Forum](https://wordpress.org/support/plugin/ai-pagegen)
+- 🎥 [Video Tutorials](https://youtube.com/yourchannel)
+- 📧 [Community Support](mailto:community@ai-pagegen.com)
 
-## 📊 Usage Analytics & Monitoring
+### Pro Version Support
+- 🚀 **Priority Email Support**: Fast response within 24 hours
+- 💬 **Live Chat Support**: Real-time assistance
+- 🎯 **Advanced Troubleshooting**: Custom solutions for complex issues
+- 🔧 **Installation Assistance**: Help with setup and configuration
+- 📊 **Feature Requests**: Direct input on future development
 
-### Tracking Usage
-- Monitor API usage in OpenAI dashboard
-- Track content generation success rates
-- Review error logs for optimization
+### Connect With Us
+- 🐦 [Twitter Updates](https://twitter.com/aiparagen)
+- 💼 [LinkedIn](https://linkedin.com/company/ai-pagegen)
+- 📺 [YouTube Channel](https://youtube.com/aiparagen)
+- 📧 [Newsletter](https://ai-pagegen.com/newsletter)
 
-### Performance Optimization
-- Cache frequently used prompts
-- Optimize API request parameters
-- Monitor response times
+## 🔄 Changelog
 
-## 🔄 Updates & Maintenance
+### Version 1.0.0 (Current)
+- 🎉 **Initial Release**
+- ✅ Core AI content generation functionality
+- ✅ Free and Pro version distinction
+- ✅ OpenAI API integration
+- ✅ WordPress admin interface
+- ✅ SEO optimization features (Pro)
+- ✅ Custom styling options (Pro)
+- ✅ Multi-language support
+- ✅ Security implementations
 
-### Automatic Updates
-- Free version: WordPress.org repository
-- Pro version: Automatic updates via license system
+### Coming Soon (v1.1.0)
+- 🔄 Bulk content generation
+- 📊 Analytics dashboard
+- 🎨 More template options
+- 🌐 Additional AI providers
+- 📱 Mobile app companion
 
-### Manual Updates
-1. Backup your site
-2. Download latest version
-3. Replace plugin files
-4. Test functionality
+## 📋 File Structure (For Developers)
 
-### Version History
-- **1.0.0**: Initial release with core features
-- Future updates will be documented here
+```
+ai-pagegen/
+├── ai-pagegen.php                 # Main plugin file
+├── includes/                      # Core functionality
+│   ├── class-ai-pagegen-admin.php         # Admin interface
+│   ├── class-ai-pagegen-openai.php        # OpenAI API integration
+│   ├── class-ai-pagegen-post-creator.php  # Content creation
+│   └── class-ai-pagegen-licensing.php     # Pro licensing
+├── assets/                        # Frontend assets
+│   ├── css/admin.css             # Admin styling
+│   └── js/admin.js               # Admin interactions
+├── languages/                     # Translation files
+│   └── ai-pagegen.pot            # Translation template
+├── documentation/                 # Extended docs
+├── LICENSE                        # GPL License
+└── README.md                     # This file
+```
 
-## 📄 License & Legal
+## 🤝 Contributing
 
-### Open Source License
-This plugin is licensed under GPL v2 or later.
+We welcome contributions from the community!
 
-### OpenAI API Terms
-By using this plugin, you agree to OpenAI's Terms of Service and API usage policies.
+### How to Contribute
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and test thoroughly
+4. Commit with clear messages: `git commit -m "Add amazing feature"`
+5. Push to your branch: `git push origin feature/amazing-feature`
+6. Submit a Pull Request
 
-### Privacy Policy
-- Plugin does not store user prompts permanently
-- API requests are sent to OpenAI servers
-- Generated content is stored in your WordPress database
+### Development Guidelines
+- Follow WordPress Coding Standards
+- Include PHPDoc comments for all functions
+- Test on multiple WordPress versions
+- Ensure backwards compatibility
+- Add translations for new strings
 
-## 🤝 Credits & Acknowledgments
+## 📜 Legal & Privacy
 
-- **WordPress Community**: For the amazing platform
-- **OpenAI**: For the powerful GPT API
-- **Contributors**: Community members who help improve the plugin
-- **Beta Testers**: Early users who provided valuable feedback
+### Data Privacy
+- ✅ Plugin does not store user prompts permanently
+- ✅ API requests are sent securely to OpenAI servers
+- ✅ Generated content is stored only in your WordPress database
+- ✅ No personal data is transmitted to third parties
+- ✅ GDPR compliant design
+
+### Terms of Use
+- By using this plugin, you agree to OpenAI's Terms of Service
+- Ensure your generated content complies with your local laws
+- You are responsible for the content generated and published
+- The plugin is provided "as-is" without warranty
 
 ---
 
-## 📞 Support & Contact
+## 🎯 Ready to Transform Your Content Creation?
 
-**Need Help?**
-- 📖 [Documentation](https://yourdomain.com/docs)
-- 💬 [Community Forum](https://wordpress.org/support/plugin/ai-pagegen)
-- 📧 [Pro Support](mailto:support@yourdomain.com)
-- 🐛 [Report Issues](https://github.com/yourusername/ai-pagegen/issues)
+**Download AI PageGen today and experience the future of WordPress content generation!**
 
-**Follow Us**
-- 🐦 [Twitter](https://twitter.com/yourusername)
-- 💼 [LinkedIn](https://linkedin.com/company/yourcompany)
-- 📺 [YouTube Tutorials](https://youtube.com/yourchannel)
+### Quick Links
+- 🛒 [Purchase Pro Version](https://codecanyon.net/item/ai-pagegen)
+- 📖 [Full Documentation](https://ai-pagegen.com/docs)
+- 🎥 [Video Tutorials](https://youtube.com/aiparagen)
+- 💬 [Get Support](https://ai-pagegen.com/support)
+- 🐛 [Report Issues](https://github.com/your-repo/ai-pagegen/issues)
 
 ---
 
-*Made with ❤️ for the WordPress community*
+*Made with ❤️ for the WordPress community | Transform your content creation workflow today!*
+
+**⭐ If you find this plugin helpful, please consider leaving a 5-star review on CodeCanyon!**
