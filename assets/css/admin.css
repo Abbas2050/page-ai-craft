@@ -157,6 +157,85 @@
     color: #6c757d;
 }
 
+/* Radio Button Groups */
+.radio-group {
+    margin-bottom: 24px;
+}
+
+.radio-group label:first-child {
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.radio-options {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--ai-transition);
+    background: #fff;
+    margin-bottom: 0 !important;
+    font-weight: normal !important;
+}
+
+.radio-option:hover {
+    border-color: var(--ai-primary);
+    background: #f8f9fa;
+}
+
+.radio-option input[type="radio"] {
+    margin: 0;
+    width: auto;
+    padding: 0;
+}
+
+.radio-option input[type="radio"]:checked + span {
+    color: var(--ai-primary);
+    font-weight: 600;
+}
+
+.radio-option:has(input:checked) {
+    border-color: var(--ai-primary);
+    background: var(--ai-secondary);
+}
+
+.radio-option.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.pro-badge {
+    background: var(--ai-accent);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+/* Provider Settings Toggle */
+.provider-settings {
+    transition: var(--ai-transition);
+}
+
+.provider-settings.hidden {
+    display: none !important;
+}
+
 /* Enhanced Pro Tooltip */
 .pro-tooltip {
     position: absolute;

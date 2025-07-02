@@ -162,7 +162,7 @@
             $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> ' + aiPageGen.strings.creating_page);
             
             // Get Elementor compatibility setting
-            const elementorCompatible = $('#elementor_compatible').is(':checked');
+            const elementorCompatible = $('input[name="elementor_compatible"]:checked').val() === '1';
             
             const requestData = {
                 action: 'ai_pagegen_create_page',
@@ -241,12 +241,12 @@
     };
     
     /**
-     * Enhanced SEO toggle with smooth animations
+     * Enhanced SEO toggle with radio buttons
      */
     AIPageGen.bindSEOToggle = function() {
-        $('#seo_optimization').on('change', function() {
+        $('input[name="seo_optimization"]').on('change', function() {
             const $seoFields = $('#seo_fields');
-            const isChecked = this.checked;
+            const isChecked = this.value === '1';
             
             console.log('[AI PageGen] SEO toggle changed:', isChecked);
             
@@ -263,7 +263,7 @@
                 console.log('[AI PageGen] SEO feature requires Pro version');
                 // Show pro upgrade message with animation
                 AIPageGen.showProUpgradeModal();
-                this.checked = false;
+                $('#seo_no').prop('checked', true);
             } else {
                 $seoFields.slideUp({
                     duration: 300,
@@ -271,6 +271,27 @@
                 });
             }
         });
+        
+        // Handle provider switching
+        $('#ai_provider').on('change', function() {
+            const provider = $(this).val();
+            console.log('[AI PageGen] Provider changed to:', provider);
+            
+            $('.provider-settings').hide();
+            
+            if (provider === 'openai') {
+                $('#openai-settings').show();
+            } else if (provider === 'ollama') {
+                $('#ollama-settings').show();
+            }
+        });
+        
+        // Initialize provider settings visibility
+        const currentProvider = $('#ai_provider').val();
+        if (currentProvider === 'ollama') {
+            $('#ollama-settings').show();
+            $('#openai-settings').hide();
+        }
     };
     
     /**

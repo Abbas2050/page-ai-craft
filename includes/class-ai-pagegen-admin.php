@@ -105,23 +105,31 @@ class AI_PageGen_Admin {
     public function validate_settings($input) {
         $validated = array();
         
-        // Validate API key
-        if (isset($input['openai_api_key'])) {
-            $api_key = sanitize_text_field($input['openai_api_key']);
-            if (empty($api_key)) {
-                add_settings_error('ai_pagegen_settings', 'api_key_empty', __('OpenAI API key is required.', 'ai-pagegen'));
-            } elseif (!preg_match('/^sk-[a-zA-Z0-9]{48}$/', $api_key)) {
-                add_settings_error('ai_pagegen_settings', 'api_key_invalid', __('OpenAI API key format is invalid.', 'ai-pagegen'));
-            } else {
-                $validated['openai_api_key'] = $api_key;
-                AI_PageGen_Logger::info('API key updated successfully');
+            // Validate OpenAI API key
+            if (isset($input['openai_api_key'])) {
+                $api_key = sanitize_text_field($input['openai_api_key']);
+                if (empty($api_key)) {
+                    add_settings_error('ai_pagegen_settings', 'api_key_empty', __('OpenAI API key is required.', 'ai-pagegen'));
+                } elseif (!preg_match('/^sk-[a-zA-Z0-9_-]{20,}$/', $api_key)) {
+                    add_settings_error('ai_pagegen_settings', 'api_key_invalid', __('OpenAI API key format is invalid.', 'ai-pagegen'));
+                } else {
+                    $validated['openai_api_key'] = $api_key;
+                    AI_PageGen_Logger::info('API key updated successfully');
+                }
             }
-        }
+            
+            // Validate Ollama settings
+            if (isset($input['ollama_enabled'])) {
+                $validated['ollama_enabled'] = (bool)$input['ollama_enabled'];
+                $validated['ollama_url'] = isset($input['ollama_url']) ? esc_url_raw($input['ollama_url']) : 'http://localhost:11434';
+                $validated['ollama_model'] = isset($input['ollama_model']) ? sanitize_text_field($input['ollama_model']) : 'llama2';
+            }
         
         // Validate other settings
         $validated['default_post_type'] = isset($input['default_post_type']) ? sanitize_text_field($input['default_post_type']) : 'post';
         $validated['seo_optimization'] = isset($input['seo_optimization']) ? (bool)$input['seo_optimization'] : false;
         $validated['default_color_scheme'] = isset($input['default_color_scheme']) ? sanitize_text_field($input['default_color_scheme']) : '#2271b1,#ffffff,#000000';
+        $validated['ai_provider'] = isset($input['ai_provider']) ? sanitize_text_field($input['ai_provider']) : 'openai';
         
         return $validated;
     }
@@ -188,11 +196,11 @@ class AI_PageGen_Admin {
             // Get form data
             $prompt = sanitize_textarea_field($_POST['ai_prompt']);
             $post_type = sanitize_text_field($_POST['post_type']);
-            $seo_optimization = isset($_POST['seo_optimization']);
+            $seo_optimization = isset($_POST['seo_optimization']) && $_POST['seo_optimization'] === '1';
             $seo_keywords = sanitize_text_field($_POST['seo_keywords'] ?? '');
             $page_sections = sanitize_text_field($_POST['page_sections'] ?? '');
             $color_scheme = sanitize_text_field($_POST['color_scheme'] ?? '');
-            $elementor_compatible = isset($_POST['elementor_compatible']);
+            $elementor_compatible = isset($_POST['elementor_compatible']) && $_POST['elementor_compatible'] === '1';
             
             AI_PageGen_Logger::info('Form data received', array(
                 'prompt_length' => strlen($prompt),
@@ -207,11 +215,16 @@ class AI_PageGen_Admin {
                 wp_send_json_error(__('Please provide a detailed prompt (at least 10 characters).', 'ai-pagegen'));
             }
             
-            // Check API key
+            // Check API configuration based on provider
             $settings = get_option('ai_pagegen_settings', array());
-            if (empty($settings['openai_api_key'])) {
-                AI_PageGen_Logger::error('No API key configured');
+            $ai_provider = isset($settings['ai_provider']) ? $settings['ai_provider'] : 'openai';
+            
+            if ($ai_provider === 'openai' && empty($settings['openai_api_key'])) {
+                AI_PageGen_Logger::error('No OpenAI API key configured');
                 wp_send_json_error(__('OpenAI API key is not configured. Please set it in plugin settings.', 'ai-pagegen'));
+            } elseif ($ai_provider === 'ollama' && empty($settings['ollama_url'])) {
+                AI_PageGen_Logger::error('No Ollama URL configured');
+                wp_send_json_error(__('Ollama URL is not configured. Please set it in plugin settings.', 'ai-pagegen'));
             }
             
             // Prepare options
@@ -224,9 +237,17 @@ class AI_PageGen_Admin {
                 'elementor_compatible' => $elementor_compatible
             );
             
-            // Generate content
-            $openai = new AI_PageGen_OpenAI();
-            $generated_content = $openai->generate_content($prompt, $options);
+            // Generate content using selected provider
+            $settings = get_option('ai_pagegen_settings', array());
+            $ai_provider = isset($settings['ai_provider']) ? $settings['ai_provider'] : 'openai';
+            
+            if ($ai_provider === 'ollama') {
+                $ai_generator = new AI_PageGen_Ollama();
+            } else {
+                $ai_generator = new AI_PageGen_OpenAI();
+            }
+            
+            $generated_content = $ai_generator->generate_content($prompt, $options);
             
             if (!$generated_content) {
                 AI_PageGen_Logger::error('Content generation failed');
@@ -334,8 +355,16 @@ class AI_PageGen_Admin {
         }
         
         try {
-            $openai = new AI_PageGen_OpenAI();
-            $result = $openai->test_connection();
+            $settings = get_option('ai_pagegen_settings', array());
+            $ai_provider = isset($settings['ai_provider']) ? $settings['ai_provider'] : 'openai';
+            
+            if ($ai_provider === 'ollama') {
+                $ai_generator = new AI_PageGen_Ollama();
+            } else {
+                $ai_generator = new AI_PageGen_OpenAI();
+            }
+            
+            $result = $ai_generator->test_connection();
             
             if ($result) {
                 AI_PageGen_Logger::info('API connection test successful');
@@ -398,14 +427,21 @@ class AI_PageGen_Admin {
                     <p class="description"><?php _e('Specify colors for design suggestions (optional)', 'ai-pagegen'); ?></p>
                 </div>
                 
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="seo_optimization" name="seo_optimization" <?php echo !AI_PageGen_Licensing::is_pro_user() ? 'disabled' : ''; ?>>
-                        <?php _e('SEO Optimization', 'ai-pagegen'); ?>
-                        <?php if (!AI_PageGen_Licensing::is_pro_user()): ?>
-                            <span class="pro-badge"><?php _e('PRO', 'ai-pagegen'); ?></span>
-                        <?php endif; ?>
-                    </label>
+                <div class="form-group radio-group">
+                    <label><?php _e('SEO Optimization', 'ai-pagegen'); ?></label>
+                    <div class="radio-options">
+                        <label class="radio-option">
+                            <input type="radio" name="seo_optimization" value="1" id="seo_yes" <?php echo !AI_PageGen_Licensing::is_pro_user() ? 'disabled' : ''; ?>>
+                            <span><?php _e('Yes', 'ai-pagegen'); ?></span>
+                            <?php if (!AI_PageGen_Licensing::is_pro_user()): ?>
+                                <span class="pro-badge"><?php _e('PRO', 'ai-pagegen'); ?></span>
+                            <?php endif; ?>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="seo_optimization" value="0" id="seo_no" checked>
+                            <span><?php _e('No', 'ai-pagegen'); ?></span>
+                        </label>
+                    </div>
                 </div>
                 
                 <div id="seo_fields" style="display: none;">
@@ -416,14 +452,21 @@ class AI_PageGen_Admin {
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="elementor_compatible" name="elementor_compatible" <?php echo !AI_PageGen_Licensing::is_pro_user() ? 'disabled' : ''; ?>>
-                        <?php _e('Elementor Compatible', 'ai-pagegen'); ?>
-                        <?php if (!AI_PageGen_Licensing::is_pro_user()): ?>
-                            <span class="pro-badge"><?php _e('PRO', 'ai-pagegen'); ?></span>
-                        <?php endif; ?>
-                    </label>
+                <div class="form-group radio-group">
+                    <label><?php _e('Elementor Compatible', 'ai-pagegen'); ?></label>
+                    <div class="radio-options">
+                        <label class="radio-option">
+                            <input type="radio" name="elementor_compatible" value="1" id="elementor_yes" <?php echo !AI_PageGen_Licensing::is_pro_user() ? 'disabled' : ''; ?>>
+                            <span><?php _e('Yes', 'ai-pagegen'); ?></span>
+                            <?php if (!AI_PageGen_Licensing::is_pro_user()): ?>
+                                <span class="pro-badge"><?php _e('PRO', 'ai-pagegen'); ?></span>
+                            <?php endif; ?>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="elementor_compatible" value="0" id="elementor_no" checked>
+                            <span><?php _e('No', 'ai-pagegen'); ?></span>
+                        </label>
+                    </div>
                     <p class="description"><?php _e('Generate content that works well with Elementor page builder', 'ai-pagegen'); ?></p>
                 </div>
                 
@@ -473,16 +516,45 @@ class AI_PageGen_Admin {
                 
                 <table class="form-table">
                     <tr>
+                        <th scope="row"><?php _e('AI Provider', 'ai-pagegen'); ?></th>
+                        <td>
+                            <select name="ai_provider" id="ai_provider">
+                                <option value="openai" <?php selected($settings['ai_provider'] ?? 'openai', 'openai'); ?>><?php _e('OpenAI (ChatGPT)', 'ai-pagegen'); ?></option>
+                                <option value="ollama" <?php selected($settings['ai_provider'] ?? 'openai', 'ollama'); ?>><?php _e('Ollama (Local)', 'ai-pagegen'); ?></option>
+                            </select>
+                            <p class="description"><?php _e('Choose your AI provider. Ollama allows you to run AI models locally.', 'ai-pagegen'); ?></p>
+                        </td>
+                    </tr>
+                    <tr id="openai-settings" class="provider-settings">
                         <th scope="row"><?php _e('OpenAI API Key', 'ai-pagegen'); ?></th>
                         <td>
                             <input type="password" name="openai_api_key" 
                                 value="<?php echo esc_attr($settings['openai_api_key'] ?? ''); ?>" 
-                                class="regular-text" required>
+                                class="regular-text">
                             <p class="description">
                                 <?php _e('Get your API key from', 'ai-pagegen'); ?> 
                                 <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
                             </p>
                             <button type="button" id="test-api-btn" class="button"><?php _e('Test Connection', 'ai-pagegen'); ?></button>
+                        </td>
+                    </tr>
+                    <tr id="ollama-settings" class="provider-settings" style="display: none;">
+                        <th scope="row"><?php _e('Ollama Configuration', 'ai-pagegen'); ?></th>
+                        <td>
+                            <label for="ollama_url"><?php _e('Ollama URL:', 'ai-pagegen'); ?></label><br>
+                            <input type="url" name="ollama_url" id="ollama_url"
+                                value="<?php echo esc_attr($settings['ollama_url'] ?? 'http://localhost:11434'); ?>" 
+                                class="regular-text" placeholder="http://localhost:11434">
+                            <br><br>
+                            <label for="ollama_model"><?php _e('Model Name:', 'ai-pagegen'); ?></label><br>
+                            <input type="text" name="ollama_model" id="ollama_model"
+                                value="<?php echo esc_attr($settings['ollama_model'] ?? 'llama2'); ?>" 
+                                class="regular-text" placeholder="llama2">
+                            <p class="description">
+                                <?php _e('Make sure Ollama is running locally. Popular models: llama2, codellama, mistral', 'ai-pagegen'); ?><br>
+                                <?php _e('Download from:', 'ai-pagegen'); ?> <a href="https://ollama.ai/" target="_blank">https://ollama.ai/</a>
+                            </p>
+                            <button type="button" id="test-ollama-btn" class="button"><?php _e('Test Ollama Connection', 'ai-pagegen'); ?></button>
                         </td>
                     </tr>
                     <tr>
@@ -511,6 +583,26 @@ class AI_PageGen_Admin {
         
         <script>
         jQuery(document).ready(function($) {
+            // Provider switching
+            $('#ai_provider').on('change', function() {
+                const provider = $(this).val();
+                $('.provider-settings').hide();
+                
+                if (provider === 'openai') {
+                    $('#openai-settings').show();
+                } else if (provider === 'ollama') {
+                    $('#ollama-settings').show();
+                }
+            });
+            
+            // Initialize provider settings visibility
+            const currentProvider = $('#ai_provider').val();
+            if (currentProvider === 'ollama') {
+                $('#ollama-settings').show();
+                $('#openai-settings').hide();
+            }
+            
+            // Test API connection
             $('#test-api-btn').on('click', function() {
                 var $btn = $(this);
                 var originalText = $btn.text();
@@ -526,9 +618,39 @@ class AI_PageGen_Admin {
                     },
                     success: function(response) {
                         if (response.success) {
-                            alert('<?php _e('API connection successful!', 'ai-pagegen'); ?>');
+                            alert('<?php _e('OpenAI API connection successful!', 'ai-pagegen'); ?>');
                         } else {
-                            alert('<?php _e('API connection failed: ', 'ai-pagegen'); ?>' + response.data);
+                            alert('<?php _e('OpenAI API connection failed: ', 'ai-pagegen'); ?>' + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert('<?php _e('Connection test failed. Please try again.', 'ai-pagegen'); ?>');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text(originalText);
+                    }
+                });
+            });
+            
+            // Test Ollama connection
+            $('#test-ollama-btn').on('click', function() {
+                var $btn = $(this);
+                var originalText = $btn.text();
+                
+                $btn.prop('disabled', true).text('<?php _e('Testing...', 'ai-pagegen'); ?>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'ai_pagegen_test_api',
+                        nonce: '<?php echo wp_create_nonce('ai_pagegen_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('<?php _e('Ollama connection successful!', 'ai-pagegen'); ?>');
+                        } else {
+                            alert('<?php _e('Ollama connection failed: ', 'ai-pagegen'); ?>' + response.data);
                         }
                     },
                     error: function() {

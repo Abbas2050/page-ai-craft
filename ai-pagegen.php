@@ -99,6 +99,7 @@ final class AI_PageGen_Plugin {
             'includes/class-ai-pagegen-logger.php',
             'includes/class-ai-pagegen-admin.php',
             'includes/class-ai-pagegen-openai.php',
+            'includes/class-ai-pagegen-ollama.php',
             'includes/class-ai-pagegen-post-creator.php',
             'includes/class-ai-pagegen-licensing.php'
         );
@@ -175,6 +176,9 @@ final class AI_PageGen_Plugin {
         // Create default options
         $default_options = array(
             'openai_api_key' => '',
+            'ai_provider' => 'openai',
+            'ollama_url' => 'http://localhost:11434',
+            'ollama_model' => 'llama2',
             'default_post_type' => 'post',
             'default_header_footer' => 'theme',
             'seo_optimization' => false,
