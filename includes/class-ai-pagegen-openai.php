@@ -164,6 +164,12 @@ class AI_PageGen_OpenAI {
      * @return array|false API response or false on failure
      */
     private function make_api_request($data) {
+        // Validate API key format
+        if (!preg_match('/^sk-[a-zA-Z0-9]{48,}$/', $this->api_key)) {
+            AI_PageGen_Logger::error('Invalid OpenAI API key format');
+            throw new Exception(__('Invalid OpenAI API key format. Please check your API key.', 'ai-pagegen'));
+        }
+        
         $headers = array(
             'Authorization' => 'Bearer ' . $this->api_key,
             'Content-Type' => 'application/json',
@@ -199,7 +205,14 @@ class AI_PageGen_OpenAI {
             'response_length' => strlen($response_body)
         ));
         
-        if ($response_code !== 200) {
+        // Handle specific error codes
+        if ($response_code === 401) {
+            AI_PageGen_Logger::error('OpenAI API authentication failed');
+            throw new Exception(__('Invalid OpenAI API key. Please check your API key in settings.', 'ai-pagegen'));
+        } elseif ($response_code === 429) {
+            AI_PageGen_Logger::error('OpenAI API rate limit exceeded');
+            throw new Exception(__('OpenAI API rate limit exceeded. Please try again later.', 'ai-pagegen'));
+        } elseif ($response_code !== 200) {
             $error_data = json_decode($response_body, true);
             $error_message = 'OpenAI API Error (Code: ' . $response_code . ')';
             
